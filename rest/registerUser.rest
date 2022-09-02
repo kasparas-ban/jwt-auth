@@ -1,0 +1,13 @@
+@host = localhost:3001
+
+// Register User
+POST http://{{host}}/api/register HTTP/3.0
+content-type: application/json
+    
+{
+    "username": "test123",
+    "email": "kaspis245@gmail.com",
+    "password": "0123465789"
+}
+
+###
