@@ -12,6 +12,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/gomail.v2"
 	"gorm.io/gorm"
 )
@@ -35,6 +36,18 @@ func Register(ctx *gin.Context) {
 	}
 
 	validateRegistrationForm(ctx, form.Email)
+
+	// Hash the password
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(form.Password), bcrypt.DefaultCost)
+	if err != nil {
+		ctx.JSON(
+			http.StatusInternalServerError,
+			gin.H{"error": err.Error()},
+		)
+		ctx.Abort()
+		return
+	}
+	form.Password = string(hashedPassword)
 
 	sendValidationEmail(ctx, form.Username, form.Email, form.Password)
 }
@@ -70,7 +83,7 @@ func sendValidationEmail(ctx *gin.Context, name, email, pass string) {
 		)
 		ctx.Abort()
 	}
-	confirmUrl := "http://localhost:3001/login/" + token
+	confirmUrl := "http://localhost:3001/api/activate/" + token
 
 	// Load the template
 	tmpl := &bytes.Buffer{}
@@ -78,7 +91,7 @@ func sendValidationEmail(ctx *gin.Context, name, email, pass string) {
 
 	// Form the email
 	m := gomail.NewMessage()
-	m.SetHeader("From", "Auth-Server <info@placidtalk.com>")
+	m.SetHeader("From", "Auth-Server <"+env.EMAIL_USER+">")
 	m.SetHeader("To", email)
 	m.SetHeader("Subject", "Registration Confirmation")
 	m.SetBody("text/html", tmpl.String())

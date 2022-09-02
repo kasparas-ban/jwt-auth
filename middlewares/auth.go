@@ -18,11 +18,11 @@ func Auth() gin.HandlerFunc {
 			return
 		}
 
-		_, err := auth.ValidateToken(tokenString)
-		if err != nil {
+		_, authErr := auth.ValidateToken(tokenString)
+		if authErr.Err != nil {
 			context.JSON(
 				401,
-				gin.H{"error": err.Error()},
+				gin.H{"error": authErr.Err.Error()},
 			)
 			context.Abort()
 			return

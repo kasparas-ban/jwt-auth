@@ -8,8 +8,10 @@ import (
 	"jwt-auth/database"
 	"jwt-auth/middlewares"
 	tempConf "jwt-auth/templates"
+	"net/http"
 	"os"
 
+	"github.com/gin-gonic/contrib/static"
 	"github.com/gin-gonic/gin"
 	_ "github.com/joho/godotenv/autoload"
 )
@@ -43,16 +45,25 @@ func main() {
 
 func initRouter() *gin.Engine {
 	router := gin.Default()
+
+	// Login/Sign-up frontend
+	router.Use(static.Serve("/static", static.LocalFile("./views/login/static", true)))
+	router.NoRoute(func(c *gin.Context) {
+		http.ServeFile(c.Writer, c.Request, "./views/login/index.html")
+		c.Abort()
+	})
+
+	// Login/Sign-up API
 	api := router.Group("/api")
 	{
 		api.POST("/token", controllers.GenerateToken)
 		api.POST("/register", controllers.Register)
+		api.GET("/activate/:token", controllers.Activate)
 		secured := api.Group("/secured").Use(middlewares.Auth())
 		{
 			secured.GET("/ping", controllers.Ping)
 		}
 	}
-	router.GET("/activate/:token", controllers.Activate)
-	router.GET("/login", controllers.Login)
+
 	return router
 }

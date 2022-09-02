@@ -1,0 +1,7 @@
+@host = localhost:3001
+
+// Register User
+GET http://{{host}}/api/activate/123456789 HTTP/3.0
+content-type: application/json
+
+###

@@ -1,7 +1,7 @@
 package auth
 
 import (
-	"errors"
+	"net/http"
 	"time"
 
 	env "jwt-auth/config"
@@ -9,10 +9,16 @@ import (
 	"github.com/dgrijalva/jwt-go"
 )
 
+type AuthError struct {
+	Status int
+	Msg    string
+	Err    error
+}
+
 type JWTClaim struct {
 	Username string `json:"username"`
 	Email    string `json:"email"`
-	Password string `json:"password"`
+	HashPass string `json:"hashPass"`
 	jwt.StandardClaims
 }
 
@@ -21,7 +27,7 @@ func GenerateJWT(name, email, pass string) (tokenString string, err error) {
 	claims := &JWTClaim{
 		Email:    email,
 		Username: name,
-		Password: pass,
+		HashPass: pass,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expirationTime.Unix(),
 		},
@@ -31,7 +37,7 @@ func GenerateJWT(name, email, pass string) (tokenString string, err error) {
 	return
 }
 
-func ValidateToken(signedToken string) (claims *JWTClaim, err error) {
+func ValidateToken(signedToken string) (claims *JWTClaim, authErr AuthError) {
 	token, err := jwt.ParseWithClaims(
 		signedToken,
 		&JWTClaim{},
@@ -41,18 +47,29 @@ func ValidateToken(signedToken string) (claims *JWTClaim, err error) {
 	)
 
 	if err != nil {
-		return
+		return claims,
+			AuthError{
+				Status: http.StatusInternalServerError,
+				Msg:    "Failed to parse the token",
+				Err:    err,
+			}
 	}
 
 	claims, ok := token.Claims.(*JWTClaim)
 	if !ok {
-		err = errors.New("Couldn't parse claims")
-		return
+		return claims,
+			AuthError{
+				Status: http.StatusInternalServerError,
+				Msg:    "Failed to parse the claims",
+			}
 	}
 
 	if claims.ExpiresAt < time.Now().Local().Unix() {
-		err = errors.New("Token has expired")
-		return
+		return claims,
+			AuthError{
+				Status: http.StatusUnauthorized,
+				Msg:    "Token has expired",
+			}
 	}
 
 	return
