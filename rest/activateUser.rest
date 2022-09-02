@@ -1,7 +1,17 @@
 @host = localhost:3001
 
-// Register User
+###
+
+// Register a user
+GET http://{{host}}/api/activate/123456789 HTTP/3.0
+content-type: application/json
+
+// Activate user fail
 GET http://{{host}}/api/activate/123456789 HTTP/3.0
 content-type: application/json
 
 ###
+
+// Activate user success
+GET http://{{host}}/api/activate/123456789 HTTP/3.0
+content-type: application/json
