@@ -9,54 +9,56 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type TokenRequest struct {
+type LoginData struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
 
-func GenerateToken(context *gin.Context) {
-	var request TokenRequest
+func Login(ctx *gin.Context) {
+	var request LoginData
 	var user models.User
 
-	if err := context.ShouldBindJSON(&request); err != nil {
-		context.JSON(
+	if err := ctx.ShouldBindJSON(&request); err != nil {
+		ctx.JSON(
 			http.StatusBadRequest,
 			gin.H{"error": err.Error()},
 		)
-		context.Abort()
+		ctx.Abort()
 		return
 	}
 
-	// Check if the email exists and the password is correct
+	// Check if email exists
 	record := database.Instance.Where("email = ?", request.Email).First(&user)
 	if record.Error != nil {
-		context.JSON(
+		ctx.JSON(
 			http.StatusInternalServerError,
 			gin.H{"error": record.Error.Error()},
 		)
-		context.Abort()
+		ctx.Abort()
 		return
 	}
 
+	// Check if password is correct
 	credentialError := user.CheckPassword(request.Password)
 	if credentialError != nil {
-		context.JSON(
+		ctx.JSON(
 			http.StatusUnauthorized,
 			gin.H{"error": "invalid credentials"},
 		)
-		context.Abort()
+		ctx.Abort()
 		return
 	}
 
-	tokenString, err := auth.GenerateJWT(user.Email, user.Username, "lala")
+	// Generate JWT
+	tokenString, err := auth.GenerateJWT(user.Email, user.Username, user.Password)
 	if err != nil {
-		context.JSON(
+		ctx.JSON(
 			http.StatusInternalServerError,
 			gin.H{"error": err.Error()},
 		)
-		context.Abort()
+		ctx.Abort()
 		return
 	}
 
-	context.JSON(http.StatusOK, gin.H{"token": tokenString})
+	ctx.JSON(http.StatusOK, gin.H{"token": tokenString})
 }

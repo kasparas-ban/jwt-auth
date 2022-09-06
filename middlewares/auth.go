@@ -7,27 +7,27 @@ import (
 )
 
 func Auth() gin.HandlerFunc {
-	return func(context *gin.Context) {
-		tokenString := context.GetHeader("Authorization")
+	return func(ctx *gin.Context) {
+		tokenString := ctx.GetHeader("Authorization")
 		if tokenString == "" {
-			context.JSON(
+			ctx.JSON(
 				401,
 				gin.H{"error": "request does not contain an access token"},
 			)
-			context.Abort()
+			ctx.Abort()
 			return
 		}
 
 		_, authErr := auth.ValidateToken(tokenString)
 		if authErr.Err != nil {
-			context.JSON(
-				401,
+			ctx.JSON(
+				authErr.Status,
 				gin.H{"error": authErr.Err.Error()},
 			)
-			context.Abort()
+			ctx.Abort()
 			return
 		}
 
-		context.Next()
+		ctx.Next()
 	}
 }

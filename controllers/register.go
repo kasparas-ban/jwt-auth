@@ -5,7 +5,7 @@ import (
 	"errors"
 	auth "jwt-auth/auth"
 	env "jwt-auth/config"
-	"jwt-auth/database"
+	db "jwt-auth/database"
 	"jwt-auth/models"
 	tmplConfig "jwt-auth/templates"
 	"log"
@@ -56,7 +56,7 @@ func validateRegistrationForm(ctx *gin.Context, email string) {
 	var user models.User
 
 	// Check if the email exists in the database
-	err := database.Instance.Where("email = ?", email).First(&user).Error
+	err := db.Instance.Where("email = ?", email).First(&user).Error
 	if err == nil {
 		ctx.JSON(
 			http.StatusBadRequest,
