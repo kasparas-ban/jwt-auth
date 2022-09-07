@@ -60,3 +60,18 @@ PORT=3001
 - Enable logging (log incomming request as well as the outgoing response before it's sent)
 - API handlers go here
 - Respond with `Not Found 404`
+
+## Things to store in JWT
+
+```
+{
+  "alg": "HS256"
+}
+{
+  "sub": "username",
+  "aud": "https://localhost:3001",
+  "exp": 125843646247,
+  "attrs": {}
+}
+Base64-encoded key
+```

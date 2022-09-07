@@ -12,15 +12,20 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator"
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/gomail.v2"
 	"gorm.io/gorm"
 )
 
+// Username invalid characters: `/\,|:;&$!%@#?*^=<>(){}[]
+// Password invalid characters: /\,|<>=(){}[]
+
 type RegistrationForm struct {
-	Username string `json:"username"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Username  string `json:"username" validate:"required,min=6,max=20,excludesall=0x60/0x5C0x2C0x7C:;&$!%@#?*^=<>(){}[]"`
+	Email     string `json:"email" validate:"required,email,max=40"`
+	Password  string `json:"password" validate:"required,min=10,max=30,excludesall=\\/0x2C0x7C<>=(){}[]"`
+	Password2 string `json:"password2" validate:"required,eqfield=Password"`
 }
 
 func Register(ctx *gin.Context) {
@@ -35,7 +40,7 @@ func Register(ctx *gin.Context) {
 		return
 	}
 
-	validateRegistrationForm(ctx, form.Email)
+	validateRegistrationForm(ctx, form)
 
 	// Hash the password
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(form.Password), bcrypt.DefaultCost)
@@ -52,11 +57,11 @@ func Register(ctx *gin.Context) {
 	sendValidationEmail(ctx, form.Username, form.Email, form.Password)
 }
 
-func validateRegistrationForm(ctx *gin.Context, email string) {
+func validateRegistrationForm(ctx *gin.Context, form RegistrationForm) {
 	var user models.User
 
 	// Check if the email exists in the database
-	err := db.Instance.Where("email = ?", email).First(&user).Error
+	err := db.Instance.Where("email = ?", form.Email).First(&user).Error
 	if err == nil {
 		ctx.JSON(
 			http.StatusBadRequest,
@@ -71,6 +76,23 @@ func validateRegistrationForm(ctx *gin.Context, email string) {
 		)
 		ctx.Abort()
 	}
+
+	err = ValidateInputs(form)
+	if err != nil {
+		ctx.JSON(
+			http.StatusUnprocessableEntity,
+			gin.H{"error": "Email ID already registered"},
+		)
+		ctx.Abort()
+	}
+}
+
+func ValidateInputs(form RegistrationForm) (err error) {
+	var validate *validator.Validate
+	validate = validator.New()
+
+	err = validate.Struct(form)
+	return
 }
 
 func sendValidationEmail(ctx *gin.Context, name, email, pass string) {

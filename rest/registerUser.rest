@@ -8,7 +8,8 @@ content-type: application/json
 {
     "username": "test123",
     "email": "test@gmail.com",
-    "password": "0123465789"
+    "password": "0123465789",
+    "password2": "0123465789"
 }
 
 ###
