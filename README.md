@@ -29,6 +29,7 @@ PORT=3001
 - [ ] Add request-rate limiting against DDOS attacks
 - [ ] Add Authorization header
 - [ ] Implement max-retries for login
+- [ ] Ensure HTTPS is used
 
 ## Things to be aware of
 
@@ -41,6 +42,9 @@ PORT=3001
   - `Cache-Control: 'no-store'`
   - `Content-Security-Policy: default-src 'none' frame-ancestors 'none'; sandbox`
   - `Server: ''`
+- Don't use GET request to alter state on the server. They are usually assumed to be safe by the browser.
+- Beware of timing attacks - make sure that the comparisons happen in constant time.
+- Use encrypted keystore instead of .env file
 
 ## Request handling in order
 

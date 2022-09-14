@@ -3,6 +3,7 @@ package controllers
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	auth "jwt-auth/auth"
 	env "jwt-auth/config"
 	db "jwt-auth/database"
@@ -68,22 +69,26 @@ func validateRegistrationForm(ctx *gin.Context, form RegistrationForm) {
 			gin.H{"error": "Email ID already registered"},
 		)
 		ctx.Abort()
+		return
 	}
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		fmt.Printf("\n\n HERE: %+v \n\n", err)
 		ctx.JSON(
 			http.StatusInternalServerError,
 			gin.H{"error": err.Error()},
 		)
 		ctx.Abort()
+		return
 	}
 
 	err = ValidateInputs(form)
 	if err != nil {
 		ctx.JSON(
 			http.StatusUnprocessableEntity,
-			gin.H{"error": "Email ID already registered"},
+			gin.H{"error": "Invalid registration form"},
 		)
 		ctx.Abort()
+		return
 	}
 }
 
@@ -104,6 +109,7 @@ func sendValidationEmail(ctx *gin.Context, name, email, pass string) {
 			gin.H{"error": err.Error()},
 		)
 		ctx.Abort()
+		return
 	}
 	confirmUrl := "http://localhost:3001/api/activate/" + token
 

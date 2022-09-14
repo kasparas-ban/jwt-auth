@@ -35,17 +35,16 @@ func main() {
 	loadTemplates()
 
 	// Initialize database
-	database.Connect("root:example@tcp(localhost:3306)/jwt_demo?parseTime=true")
+	database.Connect("root:example@tcp(localhost:3306)/jwt_auth_DB?parseTime=true")
 	database.Migrate()
 
 	// Initialize router
-	router := initRouter()
+	router := gin.Default()
+	initRouter(router)
 	router.Run(":" + config.PORT)
 }
 
-func initRouter() *gin.Engine {
-	router := gin.Default()
-
+func initRouter(router *gin.Engine) {
 	// Login/Sign-up frontend
 	router.Use(static.Serve("/static", static.LocalFile("./views/login/static", true)))
 	router.NoRoute(func(c *gin.Context) {
@@ -64,6 +63,4 @@ func initRouter() *gin.Engine {
 			secured.GET("/ping", controllers.Ping)
 		}
 	}
-
-	return router
 }

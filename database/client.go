@@ -21,6 +21,9 @@ func Connect(connString string) {
 }
 
 func Migrate() {
-	Instance.AutoMigrate(&models.User{})
-	log.Println("Database migration completed")
+	err := Instance.AutoMigrate(&models.User{})
+	if err != nil {
+		log.Fatal(err)
+		panic("Could not migrate defined models")
+	}
 }
