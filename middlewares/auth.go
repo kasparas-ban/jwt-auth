@@ -2,6 +2,7 @@ package middlewares
 
 import (
 	"jwt-auth/auth"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
@@ -11,7 +12,7 @@ func Auth() gin.HandlerFunc {
 		tokenString := ctx.GetHeader("Authorization")
 		if tokenString == "" {
 			ctx.JSON(
-				401,
+				http.StatusUnauthorized,
 				gin.H{"error": "request does not contain an access token"},
 			)
 			ctx.Abort()

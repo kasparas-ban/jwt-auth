@@ -54,6 +54,7 @@ func initRouter(router *gin.Engine) {
 
 	// Login/Sign-up API
 	api := router.Group("/api")
+	api.Use(middlewares.HeadersMiddleware())
 	{
 		api.POST("/login", controllers.Login)
 		api.POST("/register", controllers.Register)
