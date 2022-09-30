@@ -7,6 +7,7 @@ import (
 	"jwt-auth/controllers"
 	db "jwt-auth/database"
 	"jwt-auth/middlewares"
+	"jwt-auth/models"
 	tempConf "jwt-auth/templates"
 	"net/http"
 	"os"
@@ -37,9 +38,9 @@ func main() {
 
 	// Initialize databases
 	db.MainDB.Connect("root:example@tcp(localhost:3306)/main_DB?parseTime=true", &gorm.Config{})
-	db.MainDB.Migrate()
+	db.MainDB.Migrate(&models.User{})
 	db.SessionDB.Connect("root:example@tcp(localhost:3306)/session_DB?parseTime=true", &gorm.Config{})
-	db.SessionDB.Migrate()
+	db.SessionDB.Migrate(&models.Session{})
 
 	// Initialize router
 	router := gin.Default()

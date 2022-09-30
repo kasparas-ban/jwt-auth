@@ -29,7 +29,7 @@ func TestMain(m *testing.M) {
 	// Initialize database
 	gormConfig := &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)}
 	db.MainDB.Connect("root:example@tcp(localhost:3306)/main_DB_test?parseTime=true", gormConfig)
-	db.MainDB.Migrate()
+	db.MainDB.Migrate(&models.User{})
 	seedDB()
 
 	gin.SetMode(gin.ReleaseMode)
