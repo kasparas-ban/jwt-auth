@@ -62,7 +62,7 @@ func validateRegistrationForm(ctx *gin.Context, form RegistrationForm) {
 	var user models.User
 
 	// Check if the email exists in the database
-	err := db.Instance.Where("email = ?", form.Email).First(&user).Error
+	err := db.MainDB.Instance.Where("email = ?", form.Email).First(&user).Error
 	if err == nil {
 		ctx.JSON(
 			http.StatusBadRequest,

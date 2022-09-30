@@ -5,7 +5,7 @@ import (
 	"jwt-auth/config"
 	env "jwt-auth/config"
 	"jwt-auth/controllers"
-	"jwt-auth/database"
+	db "jwt-auth/database"
 	"jwt-auth/middlewares"
 	tempConf "jwt-auth/templates"
 	"net/http"
@@ -14,6 +14,7 @@ import (
 	"github.com/gin-gonic/contrib/static"
 	"github.com/gin-gonic/gin"
 	_ "github.com/joho/godotenv/autoload"
+	"gorm.io/gorm"
 )
 
 func loadEnv() {
@@ -34,9 +35,11 @@ func main() {
 	loadEnv()
 	loadTemplates()
 
-	// Initialize database
-	database.Connect("root:example@tcp(localhost:3306)/jwt_auth_DB?parseTime=true")
-	database.Migrate()
+	// Initialize databases
+	db.MainDB.Connect("root:example@tcp(localhost:3306)/main_DB?parseTime=true", &gorm.Config{})
+	db.MainDB.Migrate()
+	db.SessionDB.Connect("root:example@tcp(localhost:3306)/session_DB?parseTime=true", &gorm.Config{})
+	db.SessionDB.Migrate()
 
 	// Initialize router
 	router := gin.Default()

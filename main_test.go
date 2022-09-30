@@ -3,7 +3,7 @@ package main
 import (
 	"bytes"
 	"jwt-auth/controllers"
-	"jwt-auth/database"
+	db "jwt-auth/database"
 	"jwt-auth/models"
 	"net/http"
 	"net/http/httptest"
@@ -12,17 +12,24 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 var router *gin.Engine
+
+type testDB struct {
+	*gorm.DB
+}
 
 func TestMain(m *testing.M) {
 	loadEnv()
 	loadTemplates()
 
 	// Initialize database
-	database.Connect("root:example@tcp(localhost:3306)/jwt_auth_DB_test?parseTime=true")
-	database.Migrate()
+	gormConfig := &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)}
+	db.MainDB.Connect("root:example@tcp(localhost:3306)/main_DB_test?parseTime=true", gormConfig)
+	db.MainDB.Migrate()
 	seedDB()
 
 	gin.SetMode(gin.ReleaseMode)
@@ -41,9 +48,9 @@ func seedDB() {
 		{Username: "kelly-kneeling", Email: "kkelly456@gmail.com", Password: "tikc32nick_trick?"},
 	}
 	for _, user := range users {
-		err := database.Instance.Where("email = ?", user.Email).First(&models.User{}).Error
+		err := db.MainDB.Instance.Where("email = ?", user.Email).First(&models.User{}).Error
 		if err != nil {
-			database.Instance.Create(&user)
+			db.MainDB.Instance.Create(&user)
 		}
 	}
 }
@@ -58,6 +65,7 @@ func TestRegister_AddNewUser(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest(http.MethodPost, "/api/register", bytes.NewBuffer(jsonData))
+	req.Header.Add("Content-Type", "application/json; charset=UTF-8")
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -89,6 +97,7 @@ func TestRegister_AddInvalidUser(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest(http.MethodPost, "/api/register", bytes.NewBuffer(jsonData))
+	req.Header.Set("Content-Type", "application/json; charset=UTF-8")
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)

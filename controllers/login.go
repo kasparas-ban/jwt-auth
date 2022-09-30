@@ -2,7 +2,7 @@ package controllers
 
 import (
 	"jwt-auth/auth"
-	"jwt-auth/database"
+	db "jwt-auth/database"
 	"jwt-auth/models"
 	"net/http"
 
@@ -28,7 +28,7 @@ func Login(ctx *gin.Context) {
 	}
 
 	// Check if email exists
-	record := database.Instance.Where("email = ?", request.Email).First(&user)
+	record := db.MainDB.Instance.Where("email = ?", request.Email).First(&user)
 	if record.Error != nil {
 		ctx.JSON(
 			http.StatusInternalServerError,

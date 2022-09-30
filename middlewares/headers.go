@@ -9,7 +9,7 @@ import (
 func HeadersMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Only `application/json` content-type is allowed
-		if c.Request.Header.Get("Content-Type") != "application/json" {
+		if c.Request.Header.Get("Content-Type") != "application/json; charset=UTF-8" {
 			c.JSON(
 				http.StatusUnsupportedMediaType,
 				gin.H{"error": "not acceptable content-type"},

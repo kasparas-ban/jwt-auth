@@ -33,7 +33,7 @@ func Activate(ctx *gin.Context) {
 
 	// Check if the email exists in the database
 	var user models.User
-	err := db.Instance.Where("email = ?", claims.Email).First(&user).Error
+	err := db.MainDB.Instance.Where("email = ?", claims.Email).First(&user).Error
 	if err == nil {
 		ctx.Redirect(http.StatusFound, "http://localhost:"+env.PORT+"/login"+userExistsMsg)
 		return
@@ -49,7 +49,7 @@ func Activate(ctx *gin.Context) {
 		Email:    claims.Email,
 		Password: claims.HashPass,
 	}
-	result := db.Instance.Create(&newUser)
+	result := db.MainDB.Instance.Create(&newUser)
 	if result.Error != nil {
 		ctx.Redirect(http.StatusFound, "http://localhost:"+env.PORT+"/login"+errorMsg)
 		return
