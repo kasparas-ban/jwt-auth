@@ -1,7 +1,8 @@
 package controllers
 
 import (
-	"jwt-auth/auth"
+	auth "jwt-auth/auth"
+	env "jwt-auth/config"
 	db "jwt-auth/database"
 	"jwt-auth/models"
 	"net/http"
@@ -49,8 +50,8 @@ func Login(ctx *gin.Context) {
 		return
 	}
 
-	// Generate JWT
-	tokenString, err := auth.GenerateJWT(user.Email, user.Username, user.Password)
+	// Generate SessionID
+	newSession, err := auth.GenerateSession(user.Username)
 	if err != nil {
 		ctx.JSON(
 			http.StatusInternalServerError,
@@ -60,5 +61,20 @@ func Login(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"token": tokenString})
+	// Set cookies header
+	ctx.SetCookie("sessionId", newSession.SessionId, 3600, "/", "localhost", false, true) // TODO: change this
+
+	// Add session to the session database
+	err = auth.SaveSession(newSession)
+	if err != nil {
+		ctx.JSON(
+			http.StatusInternalServerError,
+			gin.H{"error": err.Error()},
+		)
+		ctx.Abort()
+		return
+	}
+
+	// Redirect to dashboard page
+	ctx.Redirect(http.StatusFound, "http://localhost:"+env.PORT+"/dashboard")
 }

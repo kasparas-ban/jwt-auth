@@ -21,7 +21,7 @@ func Activate(ctx *gin.Context) {
 	errorMsg := "?error=true"
 
 	// Validate the token
-	claims, authErr := auth.ValidateToken(token)
+	claims, authErr := auth.ValidateJWT(token)
 	if authErr.Status == http.StatusInternalServerError {
 		ctx.Redirect(http.StatusFound, "http://localhost:"+env.PORT+"/login"+errorMsg)
 		return

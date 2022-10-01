@@ -1,10 +1,15 @@
 package auth
 
 import (
+	"crypto/rand"
+	"encoding/base64"
+	"fmt"
 	"net/http"
 	"time"
 
 	env "jwt-auth/config"
+	db "jwt-auth/database"
+	"jwt-auth/models"
 
 	"github.com/dgrijalva/jwt-go"
 )
@@ -37,7 +42,7 @@ func GenerateJWT(name, email, pass string) (tokenString string, err error) {
 	return
 }
 
-func ValidateToken(signedToken string) (claims *JWTClaim, authErr AuthError) {
+func ValidateJWT(signedToken string) (claims *JWTClaim, authErr AuthError) {
 	token, err := jwt.ParseWithClaims(
 		signedToken,
 		&JWTClaim{},
@@ -73,4 +78,32 @@ func ValidateToken(signedToken string) (claims *JWTClaim, authErr AuthError) {
 	}
 
 	return
+}
+
+func GenerateSession(username string) (models.Session, error) {
+	session := models.Session{}
+	b := make([]byte, 160)
+	_, err := rand.Read(b)
+	if err != nil {
+		return session, fmt.Errorf("Failed to generate a random number")
+	}
+	session.SessionId = base64.URLEncoding.EncodeToString(b)
+	session.Username = username
+	return session, nil
+}
+
+func ValidateSession(sessionId string) error {
+	if sessionId == "" {
+		return fmt.Errorf("Invalid sessionId")
+	}
+	return nil
+}
+
+func SaveSession(s models.Session) error {
+	result := db.SessionDB.Instance.Create(&s)
+	if result.Error != nil {
+		return fmt.Errorf("Failed to save session to the database")
+	}
+
+	return nil
 }

@@ -3,7 +3,6 @@ package controllers
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	auth "jwt-auth/auth"
 	env "jwt-auth/config"
 	db "jwt-auth/database"
@@ -72,7 +71,6 @@ func validateRegistrationForm(ctx *gin.Context, form RegistrationForm) {
 		return
 	}
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		fmt.Printf("\n\n HERE: %+v \n\n", err)
 		ctx.JSON(
 			http.StatusInternalServerError,
 			gin.H{"error": err.Error()},
@@ -92,12 +90,12 @@ func validateRegistrationForm(ctx *gin.Context, form RegistrationForm) {
 	}
 }
 
-func ValidateInputs(form RegistrationForm) (err error) {
+func ValidateInputs(form RegistrationForm) error {
 	var validate *validator.Validate
 	validate = validator.New()
 
-	err = validate.Struct(form)
-	return
+	err := validate.Struct(form)
+	return err
 }
 
 func sendValidationEmail(ctx *gin.Context, name, email, pass string) {
