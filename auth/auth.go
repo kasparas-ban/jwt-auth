@@ -80,15 +80,15 @@ func ValidateJWT(signedToken string) (claims *JWTClaim, authErr AuthError) {
 	return
 }
 
-func GenerateSession(username string) (models.Session, error) {
+func GenerateSession(userId uint) (models.Session, error) {
 	session := models.Session{}
-	b := make([]byte, 160)
+	b := make([]byte, 20)
 	_, err := rand.Read(b)
 	if err != nil {
 		return session, fmt.Errorf("Failed to generate a random number")
 	}
 	session.SessionId = base64.URLEncoding.EncodeToString(b)
-	session.Username = username
+	session.UserId = userId
 	return session, nil
 }
 

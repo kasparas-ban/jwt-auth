@@ -2,8 +2,6 @@ package middlewares
 
 import (
 	"jwt-auth/auth"
-	"jwt-auth/database"
-	"jwt-auth/models"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -61,11 +59,11 @@ func Auth() gin.HandlerFunc {
 	}
 }
 
-func GetUser(sessionId string) string {
-	var sessionData models.Session
-	record := database.SessionDB.Instance.Where("sessionId = ?", sessionId).First(&sessionData)
-	if record.Error == nil {
-		return ""
-	}
-	return sessionData.Username
-}
+// func GetUser(sessionId string) string {
+// 	var sessionData models.Session
+// 	record := database.SessionDB.Instance.Where("sessionId = ?", sessionId).First(&sessionData)
+// 	if record.Error == nil {
+// 		return ""
+// 	}
+// 	return sessionData.Username
+// }

@@ -51,7 +51,7 @@ func Login(ctx *gin.Context) {
 	}
 
 	// Generate SessionID
-	newSession, err := auth.GenerateSession(user.Username)
+	newSession, err := auth.GenerateSession(user.ID)
 	if err != nil {
 		ctx.JSON(
 			http.StatusInternalServerError,

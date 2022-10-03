@@ -1,7 +1,9 @@
 package middlewares
 
 import (
+	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -9,7 +11,8 @@ import (
 func HeadersMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Only `application/json` content-type is allowed
-		if c.Request.Header.Get("Content-Type") != "application/json; charset=UTF-8" {
+		if strings.ToLower(c.Request.Header.Get("Content-Type")) != "application/json; charset=utf-8" {
+			fmt.Println(c.Request.Header.Get("Content-Type"))
 			c.JSON(
 				http.StatusUnsupportedMediaType,
 				gin.H{"error": "not acceptable content-type"},

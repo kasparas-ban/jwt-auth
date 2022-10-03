@@ -1,0 +1,16 @@
+@host = localhost:3001
+
+// Login User
+POST http://{{host}}/api/login HTTP/3.0
+content-type: application/json; charset=utf-8
+    
+{
+    "email": "Geovanny14@yahoo.com",
+    "password": "MWdLemlCTEUxdmh1MFNWR0tXaw=="
+}
+
+###
+
+// Activation fail
+GET http://{{host}}/api/activate/123456789 HTTP/3.0
+content-type: application/json

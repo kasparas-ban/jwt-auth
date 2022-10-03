@@ -13,7 +13,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator"
-	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/gomail.v2"
 	"gorm.io/gorm"
 )
@@ -43,7 +42,7 @@ func Register(ctx *gin.Context) {
 	validateRegistrationForm(ctx, form)
 
 	// Hash the password
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(form.Password), bcrypt.DefaultCost)
+	hashedPassword, err := models.HashPassword(form.Password)
 	if err != nil {
 		ctx.JSON(
 			http.StatusInternalServerError,
@@ -52,7 +51,7 @@ func Register(ctx *gin.Context) {
 		ctx.Abort()
 		return
 	}
-	form.Password = string(hashedPassword)
+	form.Password = hashedPassword
 
 	sendValidationEmail(ctx, form.Username, form.Email, form.Password)
 }
