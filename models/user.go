@@ -2,6 +2,7 @@ package models
 
 import (
 	b64 "encoding/base64"
+	"regexp"
 
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -12,6 +13,11 @@ type User struct {
 	Username string `json:"username"`
 	Email    string `json:"email" gorm:"unique"`
 	Password string `json:"password"`
+}
+
+func CheckForB64(input string) bool {
+	match, _ := regexp.MatchString(`^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?$`, input)
+	return match
 }
 
 func (user *User) CheckPassword(providedPassword string) error {

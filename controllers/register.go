@@ -3,6 +3,7 @@ package controllers
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	auth "jwt-auth/auth"
 	env "jwt-auth/config"
 	db "jwt-auth/database"
@@ -90,9 +91,12 @@ func validateRegistrationForm(ctx *gin.Context, form RegistrationForm) {
 }
 
 func ValidateInputs(form RegistrationForm) error {
-	var validate *validator.Validate
-	validate = validator.New()
+	// Check if password is base64-encoded
+	if models.CheckForB64(form.Password) {
+		return fmt.Errorf("invalid registration form")
+	}
 
+	validate := validator.New()
 	err := validate.Struct(form)
 	return err
 }

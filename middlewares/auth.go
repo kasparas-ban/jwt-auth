@@ -58,12 +58,3 @@ func Auth() gin.HandlerFunc {
 		ctx.Next()
 	}
 }
-
-// func GetUser(sessionId string) string {
-// 	var sessionData models.Session
-// 	record := database.SessionDB.Instance.Where("sessionId = ?", sessionId).First(&sessionData)
-// 	if record.Error == nil {
-// 		return ""
-// 	}
-// 	return sessionData.Username
-// }

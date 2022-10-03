@@ -3,6 +3,7 @@ package auth
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -12,6 +13,7 @@ import (
 	"jwt-auth/models"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/go-sql-driver/mysql"
 )
 
 type AuthError struct {
@@ -85,7 +87,7 @@ func GenerateSession(userId uint) (models.Session, error) {
 	b := make([]byte, 20)
 	_, err := rand.Read(b)
 	if err != nil {
-		return session, fmt.Errorf("Failed to generate a random number")
+		return session, fmt.Errorf("failed to generate a random number")
 	}
 	session.SessionId = base64.URLEncoding.EncodeToString(b)
 	session.UserId = userId
@@ -93,17 +95,27 @@ func GenerateSession(userId uint) (models.Session, error) {
 }
 
 func ValidateSession(sessionId string) error {
-	if sessionId == "" {
-		return fmt.Errorf("Invalid sessionId")
+	// Check cache for sessionId
+
+	// Check sessionDB for sessionId
+	var session *models.Session
+	err := db.SessionDB.Instance.Where("session_id = ?", sessionId).First(&session).Error
+	if err != nil {
+		return fmt.Errorf("no session found")
 	}
+
+	// Save session to cache
 	return nil
 }
 
 func SaveSession(s models.Session) error {
 	result := db.SessionDB.Instance.Create(&s)
-	if result.Error != nil {
-		return fmt.Errorf("Failed to save session to the database")
+
+	// If duplicate, don't return an error
+	var mysqlErr *mysql.MySQLError
+	if errors.As(result.Error, &mysqlErr) && mysqlErr.Number == 1062 {
+		return nil
 	}
 
-	return nil
+	return fmt.Errorf("failed to save session to the database")
 }
