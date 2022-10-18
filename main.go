@@ -1,6 +1,8 @@
 package main
 
 import (
+	"errors"
+	"fmt"
 	"html/template"
 	"jwt-auth/config"
 	env "jwt-auth/config"
@@ -11,6 +13,7 @@ import (
 	tempConf "jwt-auth/templates"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/gin-gonic/contrib/static"
 	"github.com/gin-gonic/gin"
@@ -48,22 +51,68 @@ func main() {
 	router.Run(":" + config.PORT)
 }
 
+func StaticFiles() gin.HandlerFunc {
+	fsLogin := static.LocalFile("./views/login/", true)
+	fsDashboard := static.LocalFile("./views/dashboard/", true)
+
+	fileserverL := http.FileServer(fsLogin)
+	fileserverL = http.StripPrefix("/", fileserverL)
+
+	fileserverD := http.FileServer(fsDashboard)
+	fileserverD = http.StripPrefix("/", fileserverD)
+
+	return func(c *gin.Context) {
+		if c.Errors == nil {
+			if fsDashboard.Exists("/", c.Request.URL.Path) {
+				fileserverD.ServeHTTP(c.Writer, c.Request)
+				c.Abort()
+				return
+			}
+		}
+
+		if fsLogin.Exists("/", c.Request.URL.Path) {
+			fileserverL.ServeHTTP(c.Writer, c.Request)
+			c.Abort()
+		}
+	}
+}
+
 func initRouter(router *gin.Engine) {
-	// Login/Sign-up frontend
-	router.Use(static.Serve("/static", static.LocalFile("./views/login/static", true)))
+	// Do auth
+	router.Use(middlewares.GlobeAuth())
+
+	// React apps
 	router.NoRoute(func(c *gin.Context) {
-		http.ServeFile(c.Writer, c.Request, "./views/login/index.html")
+		view := "dashboard"
+		if len(c.Errors) != 0 {
+			view = "login"
+			c.Header("Cache-Control", "no-store")
+		}
+
+		path := c.Request.URL.Path
+		if path == "/" || path == "" || !strings.HasPrefix(path, "/static") {
+			path = "/index.html"
+		}
+
+		filePath := fmt.Sprintf("./views/%s%s", view, path)
+		if _, err := os.Stat(filePath); errors.Is(err, os.ErrNotExist) {
+			c.File(fmt.Sprintf("./views/%s%s", view, "/index.html"))
+			c.Abort()
+			return
+		}
+
+		c.File(fmt.Sprintf("./views/%s%s", view, path))
 		c.Abort()
 	})
 
-	// Login/Sign-up API
+	// API routes
 	api := router.Group("/api")
-	api.Use(middlewares.HeadersMiddleware())
+	api.Use(middlewares.APIHeadersMiddleware())
 	{
 		api.POST("/login", controllers.Login)
 		api.POST("/register", controllers.Register)
 		api.GET("/activate/:token", controllers.Activate)
-		secured := api.Group("/").Use(middlewares.Auth())
+		secured := api.Group("/").Use(middlewares.APIAuth())
 		{
 			secured.GET("/ping", controllers.Ping)
 		}

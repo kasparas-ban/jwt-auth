@@ -136,7 +136,7 @@ func TestRegistrationValidation(t *testing.T) {
 		Password2: "1234567890a",
 	}
 
-	assert.NoError(t, controllers.ValidateInputs(form))
+	assert.NoError(t, controllers.ValidateSignupInputs(form))
 }
 
 func TestRegistrationUsername(t *testing.T) {
@@ -144,24 +144,24 @@ func TestRegistrationUsername(t *testing.T) {
 
 	// Too short
 	newForm.Username = "abcde"
-	assert.NotNil(t, controllers.ValidateInputs(newForm))
+	assert.NotNil(t, controllers.ValidateSignupInputs(newForm))
 
 	// Too long
 	newForm.Username = "zxcvbnmlklp1234567890"
-	assert.NotNil(t, controllers.ValidateInputs(newForm))
+	assert.NotNil(t, controllers.ValidateSignupInputs(newForm))
 
 	// Invalid characters
 	newForm.Username = "username,"
-	assert.NotNil(t, controllers.ValidateInputs(newForm))
+	assert.NotNil(t, controllers.ValidateSignupInputs(newForm))
 
 	newForm.Username = "username|"
-	assert.NotNil(t, controllers.ValidateInputs(newForm))
+	assert.NotNil(t, controllers.ValidateSignupInputs(newForm))
 
 	newForm.Username = "username/"
-	assert.NotNil(t, controllers.ValidateInputs(newForm))
+	assert.NotNil(t, controllers.ValidateSignupInputs(newForm))
 
 	newForm.Username = "username:;&$!%@#?*^=<>(){}[]"
-	assert.NotNil(t, controllers.ValidateInputs(newForm))
+	assert.NotNil(t, controllers.ValidateSignupInputs(newForm))
 }
 
 func TestRegistrationPassword(t *testing.T) {
@@ -170,30 +170,30 @@ func TestRegistrationPassword(t *testing.T) {
 	// Too short
 	newForm.Password = "123456789"
 	newForm.Password2 = "123456789"
-	assert.NotNil(t, controllers.ValidateInputs(newForm))
+	assert.NotNil(t, controllers.ValidateSignupInputs(newForm))
 
 	// Too long
 	newForm.Password = "zxcvbnmlkjhgfdsaqwertyuiop12345"
 	newForm.Password2 = "zxcvbnmlkjhgfdsaqwertyuiop12345"
-	assert.NotNil(t, controllers.ValidateInputs(newForm))
+	assert.NotNil(t, controllers.ValidateSignupInputs(newForm))
 
 	// Passwords do not match
 	newForm.Password = "password987654321"
 	newForm.Password2 = "password123456789"
-	assert.NotNil(t, controllers.ValidateInputs(newForm))
+	assert.NotNil(t, controllers.ValidateSignupInputs(newForm))
 
 	// Invalid characters
 	newForm.Password = "password123456,"
 	newForm.Password2 = "password123456,"
-	assert.NotNil(t, controllers.ValidateInputs(newForm))
+	assert.NotNil(t, controllers.ValidateSignupInputs(newForm))
 
 	newForm.Password = "password123456/"
 	newForm.Password2 = "password123456/"
-	assert.NotNil(t, controllers.ValidateInputs(newForm))
+	assert.NotNil(t, controllers.ValidateSignupInputs(newForm))
 
 	newForm.Password = "password123456<>=(){}[]"
 	newForm.Password2 = "password123456<>=(){}[]"
-	assert.NotNil(t, controllers.ValidateInputs(newForm))
+	assert.NotNil(t, controllers.ValidateSignupInputs(newForm))
 }
 
 func TestRegistrationEmail(t *testing.T) {
@@ -201,15 +201,15 @@ func TestRegistrationEmail(t *testing.T) {
 
 	// Too long
 	newForm.Email = "zxcvbnmlkjhgfdsaqwerqwert123456@gmail.com"
-	assert.NotNil(t, controllers.ValidateInputs(newForm))
+	assert.NotNil(t, controllers.ValidateSignupInputs(newForm))
 
 	// Invalid email
 	newForm.Email = "123@gmail@com"
-	assert.NotNil(t, controllers.ValidateInputs(newForm))
+	assert.NotNil(t, controllers.ValidateSignupInputs(newForm))
 
 	newForm.Email = "test,@gmail.com"
-	assert.NotNil(t, controllers.ValidateInputs(newForm))
+	assert.NotNil(t, controllers.ValidateSignupInputs(newForm))
 
 	newForm.Email = "test@gmail"
-	assert.NotNil(t, controllers.ValidateInputs(newForm))
+	assert.NotNil(t, controllers.ValidateSignupInputs(newForm))
 }

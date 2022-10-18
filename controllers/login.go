@@ -2,24 +2,24 @@ package controllers
 
 import (
 	auth "jwt-auth/auth"
-	env "jwt-auth/config"
 	db "jwt-auth/database"
 	"jwt-auth/models"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator"
 )
 
 type LoginData struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Email    string `json:"email" validate:"required,email,max=40"`
+	Password string `json:"password" validate:"required,min=10,max=30,excludesall=\\/0x2C0x7C<>=(){}[]"`
 }
 
 func Login(ctx *gin.Context) {
-	var request LoginData
+	var form LoginData
 	var user models.User
 
-	if err := ctx.ShouldBindJSON(&request); err != nil {
+	if err := ctx.ShouldBindJSON(&form); err != nil {
 		ctx.JSON(
 			http.StatusBadRequest,
 			gin.H{"error": err.Error()},
@@ -28,8 +28,17 @@ func Login(ctx *gin.Context) {
 		return
 	}
 
+	// if err := validateLoginInputs(form); err != nil {
+	// 	ctx.JSON(
+	// 		http.StatusBadRequest,
+	// 		gin.H{"error": err.Error()},
+	// 	)
+	// 	ctx.Abort()
+	// 	return
+	// }
+
 	// Check if email exists
-	record := db.MainDB.Instance.Where("email = ?", request.Email).First(&user)
+	record := db.MainDB.Instance.Where("email = ?", form.Email).First(&user)
 	if record.Error != nil {
 		ctx.JSON(
 			http.StatusInternalServerError,
@@ -40,7 +49,7 @@ func Login(ctx *gin.Context) {
 	}
 
 	// Check if password is correct
-	credentialError := user.CheckPassword(request.Password)
+	credentialError := user.CheckPassword(form.Password)
 	if credentialError != nil {
 		ctx.JSON(
 			http.StatusUnauthorized,
@@ -62,7 +71,8 @@ func Login(ctx *gin.Context) {
 	}
 
 	// Set cookies header
-	ctx.SetCookie("sessionId", newSession.SessionId, 3600, "/", "localhost", false, true) // TODO: change this
+	ctx.SetCookie("sessionId", newSession.SessionId, 360000, "/", "localhost", false, true) // TODO: change this
+	ctx.Header("Location", "/")
 
 	// Add session to the session database
 	err = auth.SaveSession(newSession)
@@ -76,5 +86,11 @@ func Login(ctx *gin.Context) {
 	}
 
 	// Redirect to dashboard page
-	ctx.Redirect(http.StatusFound, "http://localhost:"+env.PORT+"/dashboard")
+	ctx.Redirect(http.StatusFound, "/")
+}
+
+func validateLoginInputs(form LoginData) error {
+	validate := validator.New()
+	err := validate.Struct(form)
+	return err
 }

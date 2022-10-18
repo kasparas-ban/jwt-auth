@@ -3,7 +3,6 @@ package controllers
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	auth "jwt-auth/auth"
 	env "jwt-auth/config"
 	db "jwt-auth/database"
@@ -79,7 +78,7 @@ func validateRegistrationForm(ctx *gin.Context, form RegistrationForm) {
 		return
 	}
 
-	err = ValidateInputs(form)
+	err = ValidateSignupInputs(form)
 	if err != nil {
 		ctx.JSON(
 			http.StatusUnprocessableEntity,
@@ -90,12 +89,7 @@ func validateRegistrationForm(ctx *gin.Context, form RegistrationForm) {
 	}
 }
 
-func ValidateInputs(form RegistrationForm) error {
-	// Check if password is base64-encoded
-	if models.CheckForB64(form.Password) {
-		return fmt.Errorf("invalid registration form")
-	}
-
+func ValidateSignupInputs(form RegistrationForm) error {
 	validate := validator.New()
 	err := validate.Struct(form)
 	return err

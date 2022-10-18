@@ -29,7 +29,7 @@ type JWTClaim struct {
 	jwt.StandardClaims
 }
 
-func GenerateJWT(name, email, pass string) (tokenString string, err error) {
+func GenerateJWT(name, email, pass string) (string, error) {
 	expirationTime := time.Now().Add(1 * time.Hour)
 	claims := &JWTClaim{
 		Email:    email,
@@ -40,8 +40,8 @@ func GenerateJWT(name, email, pass string) (tokenString string, err error) {
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, err = token.SignedString([]byte(env.JWT_KEY))
-	return
+	tokenString, err := token.SignedString([]byte(env.JWT_KEY))
+	return tokenString, err
 }
 
 func ValidateJWT(signedToken string) (claims *JWTClaim, authErr AuthError) {
@@ -113,7 +113,7 @@ func SaveSession(s models.Session) error {
 
 	// If duplicate, don't return an error
 	var mysqlErr *mysql.MySQLError
-	if errors.As(result.Error, &mysqlErr) && mysqlErr.Number == 1062 {
+	if result.Error == nil || (errors.As(result.Error, &mysqlErr) && mysqlErr.Number == 1062) {
 		return nil
 	}
 
