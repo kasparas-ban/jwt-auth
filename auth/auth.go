@@ -29,6 +29,13 @@ type JWTClaim struct {
 	jwt.StandardClaims
 }
 
+type JWTResetClaim struct {
+	Email string `json:"email"`
+	jwt.StandardClaims
+}
+
+// === Sign Up JWT ===
+
 func GenerateJWT(name, email, pass string) (string, error) {
 	expirationTime := time.Now().Add(1 * time.Hour)
 	claims := &JWTClaim{
@@ -81,6 +88,61 @@ func ValidateJWT(signedToken string) (claims *JWTClaim, authErr AuthError) {
 
 	return
 }
+
+// === Reset Password JWT ===
+
+func GenerateResetJWT(email string) (string, error) {
+	expirationTime := time.Now().Add(15 * time.Minute)
+	claims := &JWTResetClaim{
+		Email: email,
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: expirationTime.Unix(),
+		},
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	tokenString, err := token.SignedString([]byte(env.JWT_RESET_KEY))
+	return tokenString, err
+}
+
+func ValidateResetJWT(signedToken string) (claims *JWTResetClaim, authErr AuthError) {
+	token, err := jwt.ParseWithClaims(
+		signedToken,
+		&JWTResetClaim{},
+		func(token *jwt.Token) (interface{}, error) {
+			return []byte(env.JWT_RESET_KEY), nil
+		},
+	)
+
+	if err != nil {
+		return claims,
+			AuthError{
+				Status: http.StatusInternalServerError,
+				Msg:    "Failed to parse the token",
+				Err:    err,
+			}
+	}
+
+	claims, ok := token.Claims.(*JWTResetClaim)
+	if !ok {
+		return claims,
+			AuthError{
+				Status: http.StatusInternalServerError,
+				Msg:    "Failed to parse the claims",
+			}
+	}
+
+	if claims.ExpiresAt < time.Now().Local().Unix() {
+		return claims,
+			AuthError{
+				Status: http.StatusUnauthorized,
+				Msg:    "Token has expired",
+			}
+	}
+
+	return
+}
+
+// === Session management ===
 
 func GenerateSession(userId uint) (models.Session, error) {
 	session := models.Session{}

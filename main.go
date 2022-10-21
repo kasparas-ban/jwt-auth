@@ -11,11 +11,8 @@ import (
 	"jwt-auth/middlewares"
 	"jwt-auth/models"
 	tempConf "jwt-auth/templates"
-	"net/http"
 	"os"
-	"strings"
 
-	"github.com/gin-gonic/contrib/static"
 	"github.com/gin-gonic/gin"
 	_ "github.com/joho/godotenv/autoload"
 	"gorm.io/gorm"
@@ -32,7 +29,9 @@ func loadEnv() {
 }
 
 func loadTemplates() {
-	tempConf.EmailTemplate = template.Must(template.ParseFiles("./templates/emailTemplate.html"))
+	tempConf.SignUpEmailTemplate = template.Must(template.ParseFiles("./templates/signupEmailTemplate.html"))
+	tempConf.ResetEmailTemplate = template.Must(template.ParseFiles("./templates/resetEmailTemplate.html"))
+	tempConf.ResetSuccessEmailTemplate = template.Must(template.ParseFiles("./templates/resetSuccessEmailTemplate.html"))
 }
 
 func main() {
@@ -51,32 +50,6 @@ func main() {
 	router.Run(":" + config.PORT)
 }
 
-func StaticFiles() gin.HandlerFunc {
-	fsLogin := static.LocalFile("./views/login/", true)
-	fsDashboard := static.LocalFile("./views/dashboard/", true)
-
-	fileserverL := http.FileServer(fsLogin)
-	fileserverL = http.StripPrefix("/", fileserverL)
-
-	fileserverD := http.FileServer(fsDashboard)
-	fileserverD = http.StripPrefix("/", fileserverD)
-
-	return func(c *gin.Context) {
-		if c.Errors == nil {
-			if fsDashboard.Exists("/", c.Request.URL.Path) {
-				fileserverD.ServeHTTP(c.Writer, c.Request)
-				c.Abort()
-				return
-			}
-		}
-
-		if fsLogin.Exists("/", c.Request.URL.Path) {
-			fileserverL.ServeHTTP(c.Writer, c.Request)
-			c.Abort()
-		}
-	}
-}
-
 func initRouter(router *gin.Engine) {
 	// Do auth
 	router.Use(middlewares.GlobeAuth())
@@ -90,7 +63,8 @@ func initRouter(router *gin.Engine) {
 		}
 
 		path := c.Request.URL.Path
-		if path == "/" || path == "" || !strings.HasPrefix(path, "/static") {
+		if path == "/" || path == "" {
+			// if path == "/" || path == "" || !strings.HasPrefix(path, "/static") {
 			path = "/index.html"
 		}
 
@@ -112,6 +86,8 @@ func initRouter(router *gin.Engine) {
 		api.POST("/login", controllers.Login)
 		api.POST("/register", controllers.Register)
 		api.GET("/activate/:token", controllers.Activate)
+		api.POST("/init-reset", controllers.InitiateReset)
+		api.POST("/complete-reset", controllers.CompleteReset)
 		secured := api.Group("/").Use(middlewares.APIAuth())
 		{
 			secured.GET("/ping", controllers.Ping)

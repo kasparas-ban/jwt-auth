@@ -2,4 +2,6 @@ package templates
 
 import "html/template"
 
-var EmailTemplate *template.Template
+var SignUpEmailTemplate *template.Template
+var ResetEmailTemplate *template.Template
+var ResetSuccessEmailTemplate *template.Template

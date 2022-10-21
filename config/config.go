@@ -7,6 +7,7 @@ import (
 
 var PORT,
 	JWT_KEY,
+	JWT_RESET_KEY,
 	HOST_SERVER,
 	EMAIL_DOMAIN,
 	EMAIL_USER,

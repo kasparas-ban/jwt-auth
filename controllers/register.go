@@ -8,7 +8,6 @@ import (
 	db "jwt-auth/database"
 	"jwt-auth/models"
 	tmplConfig "jwt-auth/templates"
-	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -17,13 +16,13 @@ import (
 	"gorm.io/gorm"
 )
 
-// Username invalid characters: `/\,|:;&$!%@#?*^=<>(){}[]
-// Password invalid characters: /\,|<>=(){}[]
+// Username: only unicode characters
+// Password: at leaset one uppercase, one lowercase, one digit, and a special character (@$!%*#?&^_-)
 
 type RegistrationForm struct {
-	Username  string `json:"username" validate:"required,min=6,max=20,excludesall=0x60/0x5C0x2C0x7C:;&$!%@#?*^=<>(){}[]"`
+	Username  string `json:"username" validate:"required,min=6,max=20,alphaunicode"`
 	Email     string `json:"email" validate:"required,email,max=40"`
-	Password  string `json:"password" validate:"required,min=10,max=30,excludesall=\\/0x2C0x7C<>=(){}[]"`
+	Password  string `json:"password" validate:"required,min=10,max=30,containsany=@$!%*#?&^_-"`
 	Password2 string `json:"password2" validate:"required,eqfield=Password"`
 }
 
@@ -39,7 +38,9 @@ func Register(ctx *gin.Context) {
 		return
 	}
 
-	validateRegistrationForm(ctx, form)
+	if err := validateRegistrationForm(ctx, form); err != nil {
+		return
+	}
 
 	// Hash the password
 	hashedPassword, err := models.HashPassword(form.Password)
@@ -56,18 +57,28 @@ func Register(ctx *gin.Context) {
 	sendValidationEmail(ctx, form.Username, form.Email, form.Password)
 }
 
-func validateRegistrationForm(ctx *gin.Context, form RegistrationForm) {
+func validateRegistrationForm(ctx *gin.Context, form RegistrationForm) error {
 	var user models.User
 
+	err := ValidateSignupInputs(form)
+	if err != nil {
+		ctx.JSON(
+			http.StatusUnprocessableEntity,
+			gin.H{"error": "Invalid registration form"},
+		)
+		ctx.Abort()
+		return err
+	}
+
 	// Check if the email exists in the database
-	err := db.MainDB.Instance.Where("email = ?", form.Email).First(&user).Error
+	err = db.MainDB.Instance.Where("email = ?", form.Email).First(&user).Error
 	if err == nil {
 		ctx.JSON(
 			http.StatusBadRequest,
 			gin.H{"error": "Email ID already registered"},
 		)
 		ctx.Abort()
-		return
+		return err
 	}
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
 		ctx.JSON(
@@ -75,18 +86,10 @@ func validateRegistrationForm(ctx *gin.Context, form RegistrationForm) {
 			gin.H{"error": err.Error()},
 		)
 		ctx.Abort()
-		return
+		return err
 	}
 
-	err = ValidateSignupInputs(form)
-	if err != nil {
-		ctx.JSON(
-			http.StatusUnprocessableEntity,
-			gin.H{"error": "Invalid registration form"},
-		)
-		ctx.Abort()
-		return
-	}
+	return nil
 }
 
 func ValidateSignupInputs(form RegistrationForm) error {
@@ -110,13 +113,21 @@ func sendValidationEmail(ctx *gin.Context, name, email, pass string) {
 
 	// Load the template
 	tmpl := &bytes.Buffer{}
-	getEmailHtml(tmpl, confirmUrl)
+	t := tmplConfig.SignUpEmailTemplate
+	if err := t.Execute(tmpl, confirmUrl); err != nil {
+		ctx.JSON(
+			http.StatusInternalServerError,
+			gin.H{"error": err.Error()},
+		)
+		ctx.Abort()
+		return
+	}
 
 	// Form the email
 	m := gomail.NewMessage()
-	m.SetHeader("From", "Auth-Server <"+env.EMAIL_USER+">")
+	m.SetHeader("From", "blue.dot <"+env.EMAIL_USER+">")
 	m.SetHeader("To", email)
-	m.SetHeader("Subject", "Registration Confirmation")
+	m.SetHeader("Subject", "SignUp Confirmation")
 	m.SetBody("text/html", tmpl.String())
 
 	d := gomail.NewDialer(
@@ -134,13 +145,5 @@ func sendValidationEmail(ctx *gin.Context, name, email, pass string) {
 		)
 		ctx.Abort()
 		return
-	}
-}
-
-func getEmailHtml(tmpl *bytes.Buffer, confirmUrl string) {
-	t := tmplConfig.EmailTemplate
-
-	if err := t.Execute(tmpl, confirmUrl); err != nil {
-		log.Println(err)
 	}
 }

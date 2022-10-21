@@ -18,10 +18,6 @@ import (
 
 var router *gin.Engine
 
-type testDB struct {
-	*gorm.DB
-}
-
 func TestMain(m *testing.M) {
 	loadEnv()
 	loadTemplates()
@@ -57,10 +53,10 @@ func seedDB() {
 
 func TestRegister_AddNewUser(t *testing.T) {
 	var jsonData = []byte(`{
-		"username":  "test123",
+		"username":  "testName",
 		"email":     "test@gmail.com",
-		"password":  "0123465789",
-		"password2": "0123465789"
+		"password":  "0123465789!",
+		"password2": "0123465789!"
 	}`)
 
 	w := httptest.NewRecorder()
@@ -73,10 +69,10 @@ func TestRegister_AddNewUser(t *testing.T) {
 
 func TestRegister_AddExistingUser(t *testing.T) {
 	var jsonData = []byte(`{
-		"username":  "test123",
+		"username":  "testName",
 		"email":     "jsmith@gmail.com",
-		"password":  "0123465789",
-		"password2": "0123465789"
+		"password":  "0123465789!",
+		"password2": "0123465789!"
 	}`)
 
 	w := httptest.NewRecorder()
@@ -89,7 +85,7 @@ func TestRegister_AddExistingUser(t *testing.T) {
 
 func TestRegister_AddInvalidUser(t *testing.T) {
 	var jsonData = []byte(`{
-		"username":  "test123; DROP TABLE users; ",
+		"username":  "testName; DROP TABLE users; ",
 		"email":     "test.username@gmail.com",
 		"password":  "01234567890!",
 		"password2":  "01234567890!",
@@ -122,18 +118,18 @@ func TestLoginAPIRoute(t *testing.T) {
 }
 
 var form = controllers.RegistrationForm{
-	Username:  "test123",
+	Username:  "testName",
 	Email:     "test@test.com",
-	Password:  "1234567890",
-	Password2: "1234567890",
+	Password:  "1234567890!",
+	Password2: "1234567890!",
 }
 
 func TestRegistrationValidation(t *testing.T) {
 	form := controllers.RegistrationForm{
-		Username:  "test123",
+		Username:  "testName",
 		Email:     "test@test.com",
-		Password:  "1234567890a",
-		Password2: "1234567890a",
+		Password:  "1234567890a!",
+		Password2: "1234567890a!",
 	}
 
 	assert.NoError(t, controllers.ValidateSignupInputs(form))
@@ -147,7 +143,7 @@ func TestRegistrationUsername(t *testing.T) {
 	assert.NotNil(t, controllers.ValidateSignupInputs(newForm))
 
 	// Too long
-	newForm.Username = "zxcvbnmlklp1234567890"
+	newForm.Username = "zxcvbnmlklpkdyirjhnbq"
 	assert.NotNil(t, controllers.ValidateSignupInputs(newForm))
 
 	// Invalid characters
