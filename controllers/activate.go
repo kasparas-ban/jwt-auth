@@ -23,11 +23,11 @@ func Activate(ctx *gin.Context) {
 	// Validate the token
 	claims, authErr := auth.ValidateJWT(token)
 	if authErr.Status == http.StatusInternalServerError {
-		ctx.Redirect(http.StatusFound, "http://localhost:"+env.PORT+"/login"+errorMsg)
+		ctx.Redirect(http.StatusFound, "http://localhost:"+env.PORT+"/"+errorMsg)
 		return
 	}
 	if authErr.Status == http.StatusUnauthorized {
-		ctx.Redirect(http.StatusGone, "http://localhost:"+env.PORT+"/login"+timeoutMsg)
+		ctx.Redirect(http.StatusGone, "http://localhost:"+env.PORT+"/"+timeoutMsg)
 		return
 	}
 
@@ -35,11 +35,11 @@ func Activate(ctx *gin.Context) {
 	var user models.User
 	err := db.MainDB.Instance.Where("email = ?", claims.Email).First(&user).Error
 	if err == nil {
-		ctx.Redirect(http.StatusFound, "http://localhost:"+env.PORT+"/login"+userExistsMsg)
+		ctx.Redirect(http.StatusFound, "http://localhost:"+env.PORT+"/"+userExistsMsg)
 		return
 	}
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		ctx.Redirect(http.StatusFound, "http://localhost:"+env.PORT+"/login"+errorMsg)
+		ctx.Redirect(http.StatusFound, "http://localhost:"+env.PORT+"/"+errorMsg)
 		return
 	}
 
@@ -51,10 +51,10 @@ func Activate(ctx *gin.Context) {
 	}
 	result := db.MainDB.Instance.Create(&newUser)
 	if result.Error != nil {
-		ctx.Redirect(http.StatusFound, "http://localhost:"+env.PORT+"/login"+errorMsg)
+		ctx.Redirect(http.StatusFound, "http://localhost:"+env.PORT+"/"+errorMsg)
 		return
 	}
 
 	// Redirect to login page
-	ctx.Redirect(http.StatusFound, "http://localhost:"+env.PORT+"/login"+activatedMsg)
+	ctx.Redirect(http.StatusFound, "http://localhost:"+env.PORT+"/"+activatedMsg)
 }

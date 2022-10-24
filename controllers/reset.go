@@ -27,22 +27,14 @@ type ResetForm struct {
 func InitiateReset(ctx *gin.Context) {
 	var form InitResetForm
 	if err := ctx.ShouldBindJSON(&form); err != nil {
-		ctx.JSON(
-			http.StatusOK,
-			gin.H{},
-		)
-		ctx.Abort()
+		ctx.AbortWithStatus(200)
 		return
 	}
 
 	// Validate email
 	validate := validator.New()
 	if err := validate.Struct(form); err != nil {
-		ctx.JSON(
-			http.StatusOK,
-			gin.H{},
-		)
-		ctx.Abort()
+		ctx.AbortWithStatus(200)
 		return
 	}
 
@@ -56,7 +48,7 @@ func sendResetEmail(ctx *gin.Context, email string) {
 	if err != nil {
 		ctx.JSON(
 			http.StatusInternalServerError,
-			gin.H{"error": err.Error()},
+			gin.H{"error": "internal server error"},
 		)
 		ctx.Abort()
 		return
@@ -69,7 +61,7 @@ func sendResetEmail(ctx *gin.Context, email string) {
 	if err = t.Execute(tmpl, resetUrl); err != nil {
 		ctx.JSON(
 			http.StatusInternalServerError,
-			gin.H{"error": err.Error()},
+			gin.H{"error": "internal server error"},
 		)
 		ctx.Abort()
 		return
@@ -93,7 +85,7 @@ func sendResetEmail(ctx *gin.Context, email string) {
 	if err := d.DialAndSend(m); err != nil {
 		ctx.JSON(
 			http.StatusInternalServerError,
-			gin.H{"error": err.Error()},
+			gin.H{"error": "internal server error"},
 		)
 		ctx.Abort()
 		return
@@ -105,7 +97,7 @@ func CompleteReset(ctx *gin.Context) {
 	if err := ctx.ShouldBindJSON(&form); err != nil {
 		ctx.JSON(
 			http.StatusInternalServerError,
-			gin.H{"error": "Invalid reset form"},
+			gin.H{"error": "invalid reset form"},
 		)
 		ctx.Abort()
 		return
@@ -116,7 +108,7 @@ func CompleteReset(ctx *gin.Context) {
 	if err := validate.Struct(form); err != nil {
 		ctx.JSON(
 			http.StatusInternalServerError,
-			gin.H{"error": "Invalid reset form"},
+			gin.H{"error": "invalid reset form"},
 		)
 		ctx.Abort()
 		return
@@ -138,7 +130,7 @@ func CompleteReset(ctx *gin.Context) {
 	if newErr != nil {
 		ctx.JSON(
 			http.StatusInternalServerError,
-			gin.H{"error": "Failed to change the password"},
+			gin.H{"error": "failed to change the password"},
 		)
 		ctx.Abort()
 		return
@@ -149,7 +141,7 @@ func CompleteReset(ctx *gin.Context) {
 	if result.Error != nil {
 		ctx.JSON(
 			http.StatusInternalServerError,
-			gin.H{"error": "Failed to change the password"},
+			gin.H{"error": "failed to change the password"},
 		)
 		ctx.Abort()
 		return

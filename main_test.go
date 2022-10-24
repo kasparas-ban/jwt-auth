@@ -2,6 +2,8 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
+	"jwt-auth/auth"
 	"jwt-auth/controllers"
 	db "jwt-auth/database"
 	"jwt-auth/models"
@@ -35,15 +37,16 @@ func TestMain(m *testing.M) {
 	os.Exit(exitVal)
 }
 
+var seedUsers = []models.User{
+	{Username: "jsmith123", Email: "jsmith@gmail.com", Password: "john123smitH987!"},
+	{Username: "barbara.gilth", Email: "barb_gilth123@yahoo.com", Password: "kitty_Minny789$"},
+	{Username: "aidenArmstrong", Email: "arm123_strong321@outlook.com", Password: "Crunchy_biscuit_yes?"},
+	{Username: ".brianlees12", Email: "brian23@gmail.com", Password: "Brian_lees_pass_123#"},
+	{Username: "kelly.kneeling11", Email: "kkelly456@gmail.com", Password: "Yikc32nick_trick?"},
+}
+
 func seedDB() {
-	users := []models.User{
-		{Username: "jsmith123", Email: "jsmith@gmail.com", Password: "john123smith987!"},
-		{Username: "barbara_gilth", Email: "barb_gilth123@yahoo.com", Password: "kitty_minny789$"},
-		{Username: "aidenArmstrong32", Email: "arm123_strong321@outlook.com", Password: "crunchy_biscuit_yes?"},
-		{Username: "_brianlees_", Email: "brian23@gmail.com", Password: "brian_lees_pass_123"},
-		{Username: "kelly-kneeling", Email: "kkelly456@gmail.com", Password: "tikc32nick_trick?"},
-	}
-	for _, user := range users {
+	for _, user := range seedUsers {
 		err := db.MainDB.Instance.Where("email = ?", user.Email).First(&models.User{}).Error
 		if err != nil {
 			db.MainDB.Instance.Create(&user)
@@ -51,12 +54,25 @@ func seedDB() {
 	}
 }
 
+func getUserData(email string) (models.User, error) {
+	var user models.User
+	err := db.MainDB.Instance.Where("email = ?", email).First(&user).Error
+	if err == nil {
+		return user, err
+	}
+	return user, nil
+}
+
+// =========================================================================
+// === Registration ========================================================
+// =========================================================================
+
 func TestRegister_AddNewUser(t *testing.T) {
 	var jsonData = []byte(`{
 		"username":  "testName",
 		"email":     "test@gmail.com",
-		"password":  "0123465789!",
-		"password2": "0123465789!"
+		"password":  "aA123465789!",
+		"password2": "aA123465789!"
 	}`)
 
 	w := httptest.NewRecorder()
@@ -71,8 +87,8 @@ func TestRegister_AddExistingUser(t *testing.T) {
 	var jsonData = []byte(`{
 		"username":  "testName",
 		"email":     "jsmith@gmail.com",
-		"password":  "0123465789!",
-		"password2": "0123465789!"
+		"password":  "aA123465789!",
+		"password2": "aA123465789!"
 	}`)
 
 	w := httptest.NewRecorder()
@@ -84,52 +100,149 @@ func TestRegister_AddExistingUser(t *testing.T) {
 }
 
 func TestRegister_AddInvalidUser(t *testing.T) {
-	var jsonData = []byte(`{
-		"username":  "testName; DROP TABLE users; ",
-		"email":     "test.username@gmail.com",
-		"password":  "01234567890!",
-		"password2":  "01234567890!",
-	}`)
+	var form = controllers.RegistrationForm{
+		Username:  "testName; DROP TABLE users; ",
+		Email:     "test@test.com",
+		Password:  "aA1234567890!",
+		Password2: "aA1234567890!",
+	}
+
+	reqBodyBytes := new(bytes.Buffer)
+	json.NewEncoder(reqBodyBytes).Encode(form)
+	reqBodyBytes.Bytes()
 
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest(http.MethodPost, "/api/register", bytes.NewBuffer(jsonData))
+	req, _ := http.NewRequest(http.MethodPost, "/api/register", bytes.NewBuffer(reqBodyBytes.Bytes()))
 	req.Header.Set("Content-Type", "application/json; charset=UTF-8")
 	router.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusBadRequest, w.Code)
+	// Invalid username
+	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
 }
+
+// =========================================================================
+// === Login ===============================================================
+// =========================================================================
 
 func TestLoginRoute(t *testing.T) {
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest(http.MethodGet, "/login", nil)
+	req, _ := http.NewRequest(http.MethodGet, "/", nil)
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	// assert.Equal(t, "pong", w.Body.String())
 }
 
 func TestLoginAPIRoute(t *testing.T) {
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest(http.MethodGet, "/api/login", nil)
+	req, _ := http.NewRequest(http.MethodGet, "/api/", nil)
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	// assert.Equal(t, "pong", w.Body.String())
 }
+
+// =========================================================================
+// === Password Reset ======================================================
+// =========================================================================
+
+func TestPassReset_NoEmail(t *testing.T) {
+	var form = controllers.InitResetForm{
+		Email: "test@test.com",
+	}
+
+	reqBodyBytes := new(bytes.Buffer)
+	json.NewEncoder(reqBodyBytes).Encode(form)
+	reqBodyBytes.Bytes()
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodPost, "/api/reset", bytes.NewBuffer(reqBodyBytes.Bytes()))
+	req.Header.Set("Content-Type", "application/json; charset=UTF-8")
+	router.ServeHTTP(w, req)
+
+	// Password reset request for a non-existing email returns OK status
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestPassReset_InitReset(t *testing.T) {
+	var form = controllers.InitResetForm{
+		Email: seedUsers[0].Email,
+	}
+
+	reqBodyBytes := new(bytes.Buffer)
+	json.NewEncoder(reqBodyBytes).Encode(form)
+	reqBodyBytes.Bytes()
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodPost, "/api/reset", bytes.NewBuffer(reqBodyBytes.Bytes()))
+	req.Header.Set("Content-Type", "application/json; charset=UTF-8")
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestPassReset_FullPasswordReset(t *testing.T) {
+	// --- Initiate password reset ---
+	var form = controllers.InitResetForm{
+		Email: seedUsers[0].Email,
+	}
+
+	reqBodyBytes := new(bytes.Buffer)
+	json.NewEncoder(reqBodyBytes).Encode(form)
+	reqBodyBytes.Bytes()
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodPost, "/api/reset", bytes.NewBuffer(reqBodyBytes.Bytes()))
+	req.Header.Set("Content-Type", "application/json; charset=UTF-8")
+	router.ServeHTTP(w, req)
+
+	// Server should return success
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	// Generate JWT token
+	token, _ := auth.GenerateResetJWT(form.Email)
+
+	// --- Get new password and complete reset ---
+	var resetForm = controllers.ResetForm{
+		Password:  "newPassword123!",
+		Password2: "newPassword123!",
+		Token:     token,
+	}
+
+	reqBodyBytes = new(bytes.Buffer)
+	json.NewEncoder(reqBodyBytes).Encode(resetForm)
+	reqBodyBytes.Bytes()
+
+	w = httptest.NewRecorder()
+	req, _ = http.NewRequest(http.MethodPost, "/api/complete-reset", bytes.NewBuffer(reqBodyBytes.Bytes()))
+	req.Header.Set("Content-Type", "application/json; charset=UTF-8")
+	router.ServeHTTP(w, req)
+
+	// Server should return success
+	assert.Equal(t, http.StatusOK, w.Code)
+	// Password should be changed
+	user, err := getUserData(form.Email)
+	if err != nil {
+		t.Errorf("Failed to get user data")
+	}
+	assert.Equal(t, user.CheckPassword(resetForm.Password), nil)
+}
+
+// =========================================================================
+// === Unit Tests ==========================================================
+// =========================================================================
 
 var form = controllers.RegistrationForm{
 	Username:  "testName",
 	Email:     "test@test.com",
-	Password:  "1234567890!",
-	Password2: "1234567890!",
+	Password:  "aA1234567890!",
+	Password2: "aA1234567890!",
 }
 
 func TestRegistrationValidation(t *testing.T) {
 	form := controllers.RegistrationForm{
 		Username:  "testName",
 		Email:     "test@test.com",
-		Password:  "1234567890a!",
-		Password2: "1234567890a!",
+		Password:  "aA1234567890!",
+		Password2: "aA1234567890!",
 	}
 
 	assert.NoError(t, controllers.ValidateSignupInputs(form))

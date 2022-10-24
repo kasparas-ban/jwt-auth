@@ -13,14 +13,14 @@ type databases interface {
 	Migrate()
 }
 
-type database[T models.User | models.Session] struct {
+type database[T models.User | Session] struct {
 	Instance *gorm.DB
 	model    T
 	dbError  error
 }
 
 var MainDB = &database[models.User]{}
-var SessionDB = &database[models.Session]{}
+var SessionDB = &database[Session]{}
 
 func (db *database[T]) Connect(connString string, options *gorm.Config) {
 	db.Instance, db.dbError = gorm.Open(mysql.Open(connString), options)

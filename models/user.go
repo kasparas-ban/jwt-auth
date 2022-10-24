@@ -1,6 +1,9 @@
 package models
 
 import (
+	"fmt"
+	"regexp"
+
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
@@ -13,23 +16,49 @@ type User struct {
 }
 
 func (user *User) CheckPassword(providedPassword string) error {
-	// Decrypt hashed password
-	// hashedPass, err := b64.StdEncoding.DecodeString(user.Password)
-	// if err != nil {
-	// 	return err
-	// }
-
-	err := bcrypt.CompareHashAndPassword(
+	return bcrypt.CompareHashAndPassword(
 		[]byte(user.Password),
 		[]byte(providedPassword),
 	)
-	return err
 }
 
 func HashPassword(password string) (string, error) {
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost) // Need salt (seems like its implemented) ? Change defaultCost ?
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost) // Change defaultCost ?
 	if err != nil {
 		return "", err
 	}
 	return string(hashedPassword), nil
+}
+
+func ValidateUsername(username string) error {
+	if match, err := regexp.MatchString("^[a-zA-Z0-9.]*$", username); !match || err != nil {
+		return err
+	}
+	return nil
+}
+
+func ValidatePassword(password string) error {
+	var lowercase, uppercase, digit, symbol bool
+	r, _ := regexp.Compile("[@$!%*#?&^_-]")
+
+	for _, c := range password {
+		if c >= 'a' && c <= 'z' {
+			lowercase = true
+		}
+		if c >= 'A' && c <= 'Z' {
+			uppercase = true
+		}
+		if c >= '0' && c <= '9' {
+			digit = true
+		}
+		if match := r.MatchString(string(c)); match {
+			symbol = true
+		}
+	}
+
+	if !(lowercase && uppercase && digit && symbol) {
+		return fmt.Errorf("invalid signup form")
+	}
+
+	return nil
 }

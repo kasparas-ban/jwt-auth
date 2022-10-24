@@ -10,9 +10,9 @@ import (
 
 	env "jwt-auth/config"
 	db "jwt-auth/database"
-	"jwt-auth/models"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/gin-gonic/gin"
 	"github.com/go-sql-driver/mysql"
 )
 
@@ -144,8 +144,8 @@ func ValidateResetJWT(signedToken string) (claims *JWTResetClaim, authErr AuthEr
 
 // === Session management ===
 
-func GenerateSession(userId uint) (models.Session, error) {
-	session := models.Session{}
+func GenerateSession(userId uint) (db.Session, error) {
+	session := db.Session{}
 	b := make([]byte, 20)
 	_, err := rand.Read(b)
 	if err != nil {
@@ -156,28 +156,40 @@ func GenerateSession(userId uint) (models.Session, error) {
 	return session, nil
 }
 
-func ValidateSession(sessionId string) error {
+func ValidateSession(ctx *gin.Context, sessionId string) error {
 	// Check cache for sessionId
+	if _, err := db.GetCacheSession(ctx, sessionId); err == nil {
+		return nil
+	}
 
 	// Check sessionDB for sessionId
-	var session *models.Session
-	err := db.SessionDB.Instance.Where("session_id = ?", sessionId).First(&session).Error
-	if err != nil {
+	var session *db.Session
+	result := db.SessionDB.Instance.Where("session_id = ?", sessionId).First(&session)
+	if result.Error != nil {
 		return fmt.Errorf("no session found")
 	}
 
 	// Save session to cache
+	if err := db.SaveCacheSession(ctx, session); err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func SaveSession(s models.Session) error {
+func SaveSession(ctx *gin.Context, s *db.Session) error {
 	result := db.SessionDB.Instance.Create(&s)
 
 	// If duplicate, don't return an error
 	var mysqlErr *mysql.MySQLError
-	if result.Error == nil || (errors.As(result.Error, &mysqlErr) && mysqlErr.Number == 1062) {
-		return nil
+	if !(result.Error == nil || (errors.As(result.Error, &mysqlErr) && mysqlErr.Number == 1062)) {
+		return fmt.Errorf("failed to save session to the database")
 	}
 
-	return fmt.Errorf("failed to save session to the database")
+	// Save to cache
+	if err := db.SaveCacheSession(ctx, s); err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -12,7 +12,7 @@ import (
 
 type LoginData struct {
 	Email    string `json:"email" validate:"required,email,max=40"`
-	Password string `json:"password" validate:"required,min=10,max=30,excludesall=\\/0x2C0x7C<>=(){}[]"`
+	Password string `json:"password" validate:"required,min=10,max=30"`
 }
 
 func Login(ctx *gin.Context) {
@@ -28,14 +28,14 @@ func Login(ctx *gin.Context) {
 		return
 	}
 
-	// if err := validateLoginInputs(form); err != nil {
-	// 	ctx.JSON(
-	// 		http.StatusBadRequest,
-	// 		gin.H{"error": err.Error()},
-	// 	)
-	// 	ctx.Abort()
-	// 	return
-	// }
+	if err := validateLoginInputs(form); err != nil {
+		ctx.JSON(
+			http.StatusBadRequest,
+			gin.H{"error": "invalid login form"},
+		)
+		ctx.Abort()
+		return
+	}
 
 	// Check if email exists
 	record := db.MainDB.Instance.Where("email = ?", form.Email).First(&user)
@@ -74,8 +74,8 @@ func Login(ctx *gin.Context) {
 	ctx.SetCookie("sessionId", newSession.SessionId, 360000, "/", "localhost", false, true) // TODO: change this
 	ctx.Header("Location", "/")
 
-	// Add session to the session database
-	err = auth.SaveSession(newSession)
+	// Save session to sessionDB and cache
+	err = auth.SaveSession(ctx, &newSession)
 	if err != nil {
 		ctx.JSON(
 			http.StatusInternalServerError,
@@ -91,6 +91,8 @@ func Login(ctx *gin.Context) {
 
 func validateLoginInputs(form LoginData) error {
 	validate := validator.New()
-	err := validate.Struct(form)
-	return err
+	if err := validate.Struct(form); err != nil {
+		return err
+	}
+	return nil
 }

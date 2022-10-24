@@ -16,11 +16,11 @@ import (
 	"gorm.io/gorm"
 )
 
-// Username: only unicode characters
-// Password: at leaset one uppercase, one lowercase, one digit, and a special character (@$!%*#?&^_-)
+// Username: only alphanumeric and .
+// Password: at least one uppercase, one lowercase, one digit, and a special character (@$!%*#?&^_-)
 
 type RegistrationForm struct {
-	Username  string `json:"username" validate:"required,min=6,max=20,alphaunicode"`
+	Username  string `json:"username" validate:"required,min=6,max=20"`
 	Email     string `json:"email" validate:"required,email,max=40"`
 	Password  string `json:"password" validate:"required,min=10,max=30,containsany=@$!%*#?&^_-"`
 	Password2 string `json:"password2" validate:"required,eqfield=Password"`
@@ -32,7 +32,7 @@ func Register(ctx *gin.Context) {
 	if err := ctx.ShouldBindJSON(&form); err != nil {
 		ctx.JSON(
 			http.StatusBadRequest,
-			gin.H{"error": err.Error()},
+			gin.H{"error": "invalid sign up form"},
 		)
 		ctx.Abort()
 		return
@@ -47,7 +47,7 @@ func Register(ctx *gin.Context) {
 	if err != nil {
 		ctx.JSON(
 			http.StatusInternalServerError,
-			gin.H{"error": err.Error()},
+			gin.H{"error": "internal server error"},
 		)
 		ctx.Abort()
 		return
@@ -64,7 +64,7 @@ func validateRegistrationForm(ctx *gin.Context, form RegistrationForm) error {
 	if err != nil {
 		ctx.JSON(
 			http.StatusUnprocessableEntity,
-			gin.H{"error": "Invalid registration form"},
+			gin.H{"error": "invalid sign up form"},
 		)
 		ctx.Abort()
 		return err
@@ -74,8 +74,8 @@ func validateRegistrationForm(ctx *gin.Context, form RegistrationForm) error {
 	err = db.MainDB.Instance.Where("email = ?", form.Email).First(&user).Error
 	if err == nil {
 		ctx.JSON(
-			http.StatusBadRequest,
-			gin.H{"error": "Email ID already registered"},
+			http.StatusConflict,
+			gin.H{"error": "email ID already registered"},
 		)
 		ctx.Abort()
 		return err
@@ -83,7 +83,7 @@ func validateRegistrationForm(ctx *gin.Context, form RegistrationForm) error {
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
 		ctx.JSON(
 			http.StatusInternalServerError,
-			gin.H{"error": err.Error()},
+			gin.H{"error": "internal server error"},
 		)
 		ctx.Abort()
 		return err
@@ -94,8 +94,21 @@ func validateRegistrationForm(ctx *gin.Context, form RegistrationForm) error {
 
 func ValidateSignupInputs(form RegistrationForm) error {
 	validate := validator.New()
-	err := validate.Struct(form)
-	return err
+	if err := validate.Struct(form); err != nil {
+		return err
+	}
+
+	// Validate username
+	if err := models.ValidateUsername(form.Username); err != nil {
+		return err
+	}
+
+	// Validate password
+	if err := models.ValidatePassword(form.Password); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func sendValidationEmail(ctx *gin.Context, name, email, pass string) {
@@ -104,7 +117,7 @@ func sendValidationEmail(ctx *gin.Context, name, email, pass string) {
 	if err != nil {
 		ctx.JSON(
 			http.StatusInternalServerError,
-			gin.H{"error": err.Error()},
+			gin.H{"error": "internal server error"},
 		)
 		ctx.Abort()
 		return
@@ -117,7 +130,7 @@ func sendValidationEmail(ctx *gin.Context, name, email, pass string) {
 	if err := t.Execute(tmpl, confirmUrl); err != nil {
 		ctx.JSON(
 			http.StatusInternalServerError,
-			gin.H{"error": err.Error()},
+			gin.H{"error": "internal server error"},
 		)
 		ctx.Abort()
 		return
@@ -141,7 +154,7 @@ func sendValidationEmail(ctx *gin.Context, name, email, pass string) {
 	if err := d.DialAndSend(m); err != nil {
 		ctx.JSON(
 			http.StatusInternalServerError,
-			gin.H{"error": err.Error()},
+			gin.H{"error": "internal server error"},
 		)
 		ctx.Abort()
 		return

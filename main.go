@@ -8,7 +8,7 @@ import (
 	env "jwt-auth/config"
 	"jwt-auth/controllers"
 	db "jwt-auth/database"
-	"jwt-auth/middlewares"
+	m "jwt-auth/middlewares"
 	"jwt-auth/models"
 	tempConf "jwt-auth/templates"
 	"os"
@@ -26,6 +26,7 @@ func loadEnv() {
 	env.EMAIL_DOMAIN = os.Getenv("EMAIL_DOMAIN")
 	env.EMAIL_USER = os.Getenv("EMAIL_USER")
 	env.EMAIL_PASS = os.Getenv("EMAIL_PASS")
+	env.CACHE_PASS = os.Getenv("CACHE_PASS")
 }
 
 func loadTemplates() {
@@ -38,11 +39,12 @@ func main() {
 	loadEnv()
 	loadTemplates()
 
-	// Initialize databases
+	// Initialize databases and cache
 	db.MainDB.Connect("root:example@tcp(localhost:3306)/main_DB?parseTime=true", &gorm.Config{})
 	db.MainDB.Migrate(&models.User{})
 	db.SessionDB.Connect("root:example@tcp(localhost:3306)/session_DB?parseTime=true", &gorm.Config{})
-	db.SessionDB.Migrate(&models.Session{})
+	db.SessionDB.Migrate(&db.Session{})
+	db.SessionCache.Connect(fmt.Sprintf("redis://default:%s@localhost:6379/0", config.CACHE_PASS))
 
 	// Initialize router
 	router := gin.Default()
@@ -52,7 +54,8 @@ func main() {
 
 func initRouter(router *gin.Engine) {
 	// Do auth
-	router.Use(middlewares.GlobeAuth())
+	router.Use(m.GlobeAuth())
+	// router.Use(m.CORSMiddleware()) // TODO: remove in prod
 
 	// React apps
 	router.NoRoute(func(c *gin.Context) {
@@ -81,14 +84,13 @@ func initRouter(router *gin.Engine) {
 
 	// API routes
 	api := router.Group("/api")
-	api.Use(middlewares.APIHeadersMiddleware())
 	{
-		api.POST("/login", controllers.Login)
-		api.POST("/register", controllers.Register)
+		api.POST("/login", m.APIHeadersMiddleware(), controllers.Login)
+		api.POST("/register", m.APIHeadersMiddleware(), controllers.Register)
 		api.GET("/activate/:token", controllers.Activate)
-		api.POST("/init-reset", controllers.InitiateReset)
-		api.POST("/complete-reset", controllers.CompleteReset)
-		secured := api.Group("/").Use(middlewares.APIAuth())
+		api.POST("/init-reset", m.APIHeadersMiddleware(), controllers.InitiateReset)
+		api.POST("/complete-reset", m.APIHeadersMiddleware(), controllers.CompleteReset)
+		secured := api.Group("/").Use(m.APIAuth())
 		{
 			secured.GET("/ping", controllers.Ping)
 		}

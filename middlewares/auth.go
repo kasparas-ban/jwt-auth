@@ -46,7 +46,7 @@ func APIAuth() gin.HandlerFunc {
 			return
 		}
 
-		err = auth.ValidateSession(sessionId)
+		err = auth.ValidateSession(ctx, sessionId)
 		if err != nil {
 			ctx.JSON(
 				http.StatusUnauthorized,
@@ -64,12 +64,12 @@ func GlobeAuth() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		sessionId, err := ctx.Cookie("sessionId")
 		if err != nil {
-			ctx.Error(fmt.Errorf("\nrequest does not contain an access token NO COOKIE\n"))
+			ctx.Error(fmt.Errorf("request does not contain an access token NO COOKIE"))
 			ctx.Next()
 			return
 		}
 
-		err = auth.ValidateSession(sessionId)
+		err = auth.ValidateSession(ctx, sessionId)
 		if err != nil {
 			ctx.Error(fmt.Errorf("request does not contain an access token NOT FOUND"))
 		}
