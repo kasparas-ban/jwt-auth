@@ -27,6 +27,7 @@ func loadEnv() {
 	env.EMAIL_USER = os.Getenv("EMAIL_USER")
 	env.EMAIL_PASS = os.Getenv("EMAIL_PASS")
 	env.CACHE_PASS = os.Getenv("CACHE_PASS")
+	env.MAINDB_PASS = os.Getenv("MAINDB_PASS")
 }
 
 func loadTemplates() {
@@ -40,9 +41,9 @@ func main() {
 	loadTemplates()
 
 	// Initialize databases and cache
-	db.MainDB.Connect("root:example@tcp(localhost:3306)/main_DB?parseTime=true", &gorm.Config{})
+	db.MainDB.Connect(fmt.Sprintf("root:%s@tcp(main_db_test:3306)/main_DB?parseTime=true", config.MAINDB_PASS), &gorm.Config{})
 	db.MainDB.Migrate(&models.User{})
-	db.SessionDB.Connect("root:example@tcp(localhost:3306)/session_DB?parseTime=true", &gorm.Config{})
+	db.SessionDB.Connect(fmt.Sprintf("root:%s@tcp(main_db_test:3306)/session_DB?parseTime=true", config.MAINDB_PASS), &gorm.Config{})
 	db.SessionDB.Migrate(&db.Session{})
 	db.SessionCache.Connect(fmt.Sprintf("redis://default:%s@localhost:6379/0", config.CACHE_PASS))
 

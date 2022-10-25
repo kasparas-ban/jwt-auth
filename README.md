@@ -22,12 +22,12 @@ PORT=3001
 
 ## TODO list
 
-- [ ] Add appropriate headers against XSS attacks
-- [ ] Add tests
-- [ ] Add input validation for login
-- [ ] Add input validation for registration
+- [x] Add appropriate headers against XSS attacks
+- [x] Add tests
+- [x] Add input validation for login
+- [x] Add input validation for registration
 - [ ] Add request-rate limiting against DDOS attacks
-- [ ] Add Authorization header
+- [x] Add Authorization header
 - [ ] Implement max-retries for login
 - [ ] Ensure HTTPS is used
 
@@ -81,4 +81,5 @@ Base64-encoded key
 ```
 
 ## Potentially useful technologies
+
 - etcd - distributed key-value store that provides a reliable way to store data that needs to be accessed by a distributed system or cluster of machines.
