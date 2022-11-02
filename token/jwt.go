@@ -1,19 +1,12 @@
 package auth
 
 import (
-	"crypto/rand"
-	"encoding/base64"
-	"errors"
-	"fmt"
 	"net/http"
 	"time"
 
 	env "jwt-auth/config"
-	db "jwt-auth/database"
 
 	"github.com/dgrijalva/jwt-go"
-	"github.com/gin-gonic/gin"
-	"github.com/go-sql-driver/mysql"
 )
 
 type AuthError struct {
@@ -140,56 +133,4 @@ func ValidateResetJWT(signedToken string) (claims *JWTResetClaim, authErr AuthEr
 	}
 
 	return
-}
-
-// === Session management ===
-
-func GenerateSession(userId uint) (db.Session, error) {
-	session := db.Session{}
-	b := make([]byte, 20)
-	_, err := rand.Read(b)
-	if err != nil {
-		return session, fmt.Errorf("failed to generate a random number")
-	}
-	session.SessionId = base64.URLEncoding.EncodeToString(b)
-	session.UserId = userId
-	return session, nil
-}
-
-func ValidateSession(ctx *gin.Context, sessionId string) error {
-	// Check cache for sessionId
-	if _, err := db.GetCacheSession(ctx, sessionId); err == nil {
-		return nil
-	}
-
-	// Check sessionDB for sessionId
-	var session *db.Session
-	result := db.SessionDB.Instance.Where("session_id = ?", sessionId).First(&session)
-	if result.Error != nil {
-		return fmt.Errorf("no session found")
-	}
-
-	// Save session to cache
-	if err := db.SaveCacheSession(ctx, session); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func SaveSession(ctx *gin.Context, s *db.Session) error {
-	result := db.SessionDB.Instance.Create(&s)
-
-	// If duplicate, don't return an error
-	var mysqlErr *mysql.MySQLError
-	if !(result.Error == nil || (errors.As(result.Error, &mysqlErr) && mysqlErr.Number == 1062)) {
-		return fmt.Errorf("failed to save session to the database")
-	}
-
-	// Save to cache
-	if err := db.SaveCacheSession(ctx, s); err != nil {
-		return err
-	}
-
-	return nil
 }

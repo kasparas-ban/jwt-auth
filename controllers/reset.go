@@ -2,11 +2,11 @@ package controllers
 
 import (
 	"bytes"
-	auth "jwt-auth/auth"
 	env "jwt-auth/config"
 	db "jwt-auth/database"
 	"jwt-auth/models"
 	tmplConfig "jwt-auth/templates"
+	jwt "jwt-auth/token"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -51,7 +51,7 @@ func InitiateReset(ctx *gin.Context) {
 
 func sendResetEmail(ctx *gin.Context, email string) {
 	// Generate JWT token
-	token, err := auth.GenerateResetJWT(email)
+	token, err := jwt.GenerateResetJWT(email)
 	if err != nil {
 		ctx.JSON(
 			http.StatusInternalServerError,
@@ -122,7 +122,7 @@ func CompleteReset(ctx *gin.Context) {
 	}
 
 	// Validate JWT
-	claims, err := auth.ValidateResetJWT(form.Token)
+	claims, err := jwt.ValidateResetJWT(form.Token)
 	if err.Err != nil {
 		ctx.JSON(
 			http.StatusInternalServerError,

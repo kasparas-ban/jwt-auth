@@ -1,10 +1,14 @@
 package database
 
 import (
+	"crypto/rand"
+	"encoding/base64"
+	"errors"
 	"fmt"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v9"
+	"github.com/go-sql-driver/mysql"
 )
 
 type Session struct {
@@ -34,10 +38,68 @@ func SaveCacheSession(ctx *gin.Context, s *Session) error {
 	return nil
 }
 
-func GetCacheSession(ctx *gin.Context, sessionId string) (string, error) {
+func ReadSessionCache(ctx *gin.Context, sessionId string) (string, error) {
 	val, err := SessionCache.Client.Get(ctx, sessionId).Result()
 	if err != nil {
 		return "", err
 	}
 	return val, nil
+}
+
+func ReadSessionDB(ctx *gin.Context, sessionId string) (*Session, error) {
+	var session *Session
+	result := SessionDB.Instance.Where("session_id = ?", sessionId).First(&session)
+	if result.Error != nil {
+		return session, fmt.Errorf("no session found")
+	}
+	return session, nil
+}
+
+func GenerateSession(userId uint) (Session, error) {
+	session := Session{}
+	b := make([]byte, 20)
+	_, err := rand.Read(b)
+	if err != nil {
+		return session, fmt.Errorf("failed to generate a random number")
+	}
+	session.SessionId = base64.URLEncoding.EncodeToString(b)
+	session.UserId = userId
+	return session, nil
+}
+
+func ValidateSession(ctx *gin.Context, sessionId string) error {
+	// Check cache for sessionId
+	if _, err := ReadSessionCache(ctx, sessionId); err == nil {
+		return nil
+	}
+
+	// Check sessionDB for sessionId
+	session, err := ReadSessionDB(ctx, sessionId)
+	if err != nil {
+		return fmt.Errorf("no session found")
+	}
+
+	// Session was found in DB, save it to cache
+	if err := SaveCacheSession(ctx, session); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func SaveSession(ctx *gin.Context, s *Session) error {
+	result := SessionDB.Instance.Create(&s)
+
+	// If duplicate, don't return an error
+	var mysqlErr *mysql.MySQLError
+	if !(result.Error == nil || (errors.As(result.Error, &mysqlErr) && mysqlErr.Number == 1062)) {
+		return fmt.Errorf("failed to save session to the database")
+	}
+
+	// Save to cache
+	if err := SaveCacheSession(ctx, s); err != nil {
+		return err
+	}
+
+	return nil
 }

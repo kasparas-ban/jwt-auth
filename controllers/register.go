@@ -3,11 +3,11 @@ package controllers
 import (
 	"bytes"
 	"errors"
-	auth "jwt-auth/auth"
 	env "jwt-auth/config"
 	db "jwt-auth/database"
 	"jwt-auth/models"
 	tmplConfig "jwt-auth/templates"
+	jwt "jwt-auth/token"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -113,7 +113,7 @@ func ValidateSignupInputs(form RegistrationForm) error {
 
 func sendValidationEmail(ctx *gin.Context, name, email, pass string) {
 	// Generate JWT token
-	token, err := auth.GenerateJWT(name, email, pass)
+	token, err := jwt.GenerateJWT(name, email, pass)
 	if err != nil {
 		ctx.JSON(
 			http.StatusInternalServerError,

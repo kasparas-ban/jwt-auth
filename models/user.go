@@ -31,8 +31,9 @@ func HashPassword(password string) (string, error) {
 }
 
 func ValidateUsername(username string) error {
-	if match, err := regexp.MatchString("^[a-zA-Z0-9.]*$", username); !match || err != nil {
-		return err
+	match, err := regexp.MatchString("^[a-zA-Z0-9.]*$", username)
+	if !match || err != nil {
+		return fmt.Errorf("invalid username")
 	}
 	return nil
 }

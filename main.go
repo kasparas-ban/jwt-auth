@@ -16,6 +16,7 @@ import (
 	"github.com/gin-gonic/gin"
 	_ "github.com/joho/godotenv/autoload"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 func loadEnv() {
@@ -44,9 +45,10 @@ func initializeDBs(dev bool) {
 		db.SessionDB.Migrate(&db.Session{})
 		db.SessionCache.Connect(fmt.Sprintf("redis://default:%s@localhost:6379/0", env.CACHE_PASS))
 	} else {
-		db.MainDB.Connect(fmt.Sprintf("root:%s@tcp(main_DB:3306)/main_DB?parseTime=true", env.MAINDB_PASS), &gorm.Config{})
+		gormConfig := &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)}
+		db.MainDB.Connect(fmt.Sprintf("root:%s@tcp(main_DB:3306)/main_DB?parseTime=true", env.MAINDB_PASS), gormConfig)
 		db.MainDB.Migrate(&models.User{})
-		db.SessionDB.Connect(fmt.Sprintf("root:%s@tcp(session_DB:3306)/session_DB?parseTime=true", env.MAINDB_PASS), &gorm.Config{})
+		db.SessionDB.Connect(fmt.Sprintf("root:%s@tcp(session_DB:3306)/session_DB?parseTime=true", env.MAINDB_PASS), gormConfig)
 		db.SessionDB.Migrate(&db.Session{})
 		db.SessionCache.Connect(fmt.Sprintf("redis://default:%s@sessions_cache:6379/0", env.CACHE_PASS))
 	}
@@ -61,6 +63,9 @@ func main() {
 	initializeDBs(*environment)
 
 	// Initialize router
+	if !*environment {
+		gin.SetMode(gin.ReleaseMode)
+	}
 	router := gin.Default()
 	initRouter(router)
 	router.Run(":" + env.PORT)

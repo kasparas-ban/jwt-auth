@@ -2,7 +2,7 @@ package middlewares
 
 import (
 	"fmt"
-	"jwt-auth/auth"
+	db "jwt-auth/database"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -46,7 +46,7 @@ func APIAuth() gin.HandlerFunc {
 			return
 		}
 
-		err = auth.ValidateSession(ctx, sessionId)
+		err = db.ValidateSession(ctx, sessionId)
 		if err != nil {
 			ctx.JSON(
 				http.StatusUnauthorized,
@@ -69,7 +69,7 @@ func GlobeAuth() gin.HandlerFunc {
 			return
 		}
 
-		err = auth.ValidateSession(ctx, sessionId)
+		err = db.ValidateSession(ctx, sessionId)
 		if err != nil {
 			ctx.Error(fmt.Errorf("request does not contain an access token NOT FOUND"))
 		}

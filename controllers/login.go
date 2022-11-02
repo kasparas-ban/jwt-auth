@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	auth "jwt-auth/auth"
 	db "jwt-auth/database"
 	"jwt-auth/models"
 	"net/http"
@@ -60,7 +59,7 @@ func Login(ctx *gin.Context) {
 	}
 
 	// Generate SessionID
-	newSession, err := auth.GenerateSession(user.ID)
+	newSession, err := db.GenerateSession(user.ID)
 	if err != nil {
 		ctx.JSON(
 			http.StatusInternalServerError,
@@ -71,11 +70,11 @@ func Login(ctx *gin.Context) {
 	}
 
 	// Set cookies header
-	ctx.SetCookie("sessionId", newSession.SessionId, 360000, "/", "localhost", false, true) // TODO: change this
+	ctx.SetCookie("sessionId", newSession.SessionId, 360000, "/", "localhost", true, true) // TODO: change this
 	ctx.Header("Location", "/")
 
 	// Save session to sessionDB and cache
-	err = auth.SaveSession(ctx, &newSession)
+	err = db.SaveSession(ctx, &newSession)
 	if err != nil {
 		ctx.JSON(
 			http.StatusInternalServerError,

@@ -2,10 +2,10 @@ package controllers
 
 import (
 	"errors"
-	auth "jwt-auth/auth"
 	env "jwt-auth/config"
 	db "jwt-auth/database"
 	"jwt-auth/models"
+	jwt "jwt-auth/token"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -21,7 +21,7 @@ func Activate(ctx *gin.Context) {
 	errorMsg := "?error=true"
 
 	// Validate the token
-	claims, authErr := auth.ValidateJWT(token)
+	claims, authErr := jwt.ValidateJWT(token)
 	if authErr.Status == http.StatusInternalServerError {
 		ctx.Redirect(http.StatusFound, "http://localhost:"+env.PORT+"/"+errorMsg)
 		return
@@ -49,8 +49,7 @@ func Activate(ctx *gin.Context) {
 		Email:    claims.Email,
 		Password: claims.HashPass,
 	}
-	result := db.MainDB.Instance.Create(&newUser)
-	if result.Error != nil {
+	if db.SaveUser(&newUser) != nil {
 		ctx.Redirect(http.StatusFound, "http://localhost:"+env.PORT+"/"+errorMsg)
 		return
 	}
