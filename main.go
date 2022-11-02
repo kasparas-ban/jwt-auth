@@ -2,9 +2,9 @@ package main
 
 import (
 	"errors"
+	"flag"
 	"fmt"
 	"html/template"
-	"jwt-auth/config"
 	env "jwt-auth/config"
 	"jwt-auth/controllers"
 	db "jwt-auth/database"
@@ -36,21 +36,34 @@ func loadTemplates() {
 	tempConf.ResetSuccessEmailTemplate = template.Must(template.ParseFiles("./templates/resetSuccessEmailTemplate.html"))
 }
 
+func initializeDBs(dev bool) {
+	if dev {
+		db.MainDB.Connect(fmt.Sprintf("root:%s@tcp(localhost:3306)/main_DB?parseTime=true", env.MAINDB_PASS), &gorm.Config{})
+		db.MainDB.Migrate(&models.User{})
+		db.SessionDB.Connect(fmt.Sprintf("root:%s@tcp(localhost:3306)/session_DB?parseTime=true", env.MAINDB_PASS), &gorm.Config{})
+		db.SessionDB.Migrate(&db.Session{})
+		db.SessionCache.Connect(fmt.Sprintf("redis://default:%s@localhost:6379/0", env.CACHE_PASS))
+	} else {
+		db.MainDB.Connect(fmt.Sprintf("root:%s@tcp(main_DB:3306)/main_DB?parseTime=true", env.MAINDB_PASS), &gorm.Config{})
+		db.MainDB.Migrate(&models.User{})
+		db.SessionDB.Connect(fmt.Sprintf("root:%s@tcp(session_DB:3306)/session_DB?parseTime=true", env.MAINDB_PASS), &gorm.Config{})
+		db.SessionDB.Migrate(&db.Session{})
+		db.SessionCache.Connect(fmt.Sprintf("redis://default:%s@sessions_cache:6379/0", env.CACHE_PASS))
+	}
+}
+
 func main() {
 	loadEnv()
 	loadTemplates()
 
-	// Initialize databases and cache
-	db.MainDB.Connect(fmt.Sprintf("root:%s@tcp(main_db_test:3306)/main_DB?parseTime=true", config.MAINDB_PASS), &gorm.Config{})
-	db.MainDB.Migrate(&models.User{})
-	db.SessionDB.Connect(fmt.Sprintf("root:%s@tcp(main_db_test:3306)/session_DB?parseTime=true", config.MAINDB_PASS), &gorm.Config{})
-	db.SessionDB.Migrate(&db.Session{})
-	db.SessionCache.Connect(fmt.Sprintf("redis://default:%s@localhost:6379/0", config.CACHE_PASS))
+	environment := flag.Bool("dev", false, "environment description")
+	flag.Parse()
+	initializeDBs(*environment)
 
 	// Initialize router
 	router := gin.Default()
 	initRouter(router)
-	router.Run(":" + config.PORT)
+	router.Run(":" + env.PORT)
 }
 
 func initRouter(router *gin.Engine) {
@@ -68,7 +81,6 @@ func initRouter(router *gin.Engine) {
 
 		path := c.Request.URL.Path
 		if path == "/" || path == "" {
-			// if path == "/" || path == "" || !strings.HasPrefix(path, "/static") {
 			path = "/index.html"
 		}
 

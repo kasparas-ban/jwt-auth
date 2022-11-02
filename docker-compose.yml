@@ -1,26 +1,26 @@
 version: '3.9'
 services:
 
-  server_test:
+  server:
     build: .
     ports:
       - "3001:3001"
     depends_on:
-      - "main_db_test"
-      - "sessions-cache_test"
+      - "main_db"
+      - "sessions_cache"
 
-  sessions-cache_test:
+  sessions_cache:
     image: redis:alpine
     restart: always
-    ports: 
+    ports:
       - "6379:6379"
     command: redis-server --save 20 1 --requirepass ${CACHE_PASS}
     # volumes:
     #   - cache:/data
 
-  main_db_test:
+  main_db:
     image: mysql
-    # command: --default-authentication-plugin=mysql_native_password
+    command: --default-authentication-plugin=caching_sha2_password
     restart: always
     ports:
       - "3306:3306"
@@ -29,18 +29,16 @@ services:
       MYSQL_PASSWORD: ${MAINDB_PASS}
       MYSQL_ROOT_PASSWORD: ${MAINDB_PASS}
       MYSQL_DATABASE: main_DB
-    entrypoint:
-      sh -c "
-        echo 'CREATE DATABASE IF NOT EXISTS main_DB; CREATE DATABASE IF NOT EXISTS session_DB;' > /docker-entrypoint-initdb.d/init.sql;
-        /usr/local/bin/docker-entrypoint.sh --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
-      "
+    # This will initialize session_DB
+    entrypoint: sh -c " echo 'CREATE DATABASE IF NOT EXISTS main_DB; CREATE DATABASE IF NOT EXISTS session_DB;' > /docker-entrypoint-initdb.d/init.sql; /usr/local/bin/docker-entrypoint.sh --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci "
+    volumes:
+      - main_db_volume:/var/lib/mysql
 
-  main_db_adminer_test:
+  main_db_adminer:
     image: adminer
     restart: always
     ports:
       - "8080:8080"
 
-
-# volumes:
-  # sessions-cache: driver:local
+volumes:
+  main_db_volume: #driver:local

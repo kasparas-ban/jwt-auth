@@ -35,13 +35,13 @@ func (db *database[T]) Connect(connString string, options *gorm.Config) {
 	i := 6
 	for {
 		if i <= 0 {
-			panic(fmt.Sprintf("Could not connect to the database after %ds", 5*6))
+			panic(fmt.Sprintf("Could not connect to the database after %ds", 15*6))
 		}
 
 		db.Instance, db.dbError = gorm.Open(mysql.Open(connString), options)
 		fmt.Println("Trying to connect: ", connString)
 		if db.dbError != nil {
-			time.Sleep(10 * time.Second)
+			time.Sleep(15 * time.Second)
 			i--
 			continue
 		}

@@ -38,6 +38,13 @@ func InitiateReset(ctx *gin.Context) {
 		return
 	}
 
+	// Check if email exists in DB
+	var user models.User
+	if err := db.MainDB.Instance.Where("email = ?", form.Email).First(&user).Error; err != nil {
+		ctx.AbortWithStatus(200)
+		return
+	}
+
 	// Send password reset email
 	sendResetEmail(ctx, form.Email)
 }
