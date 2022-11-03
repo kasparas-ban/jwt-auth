@@ -1,12 +1,14 @@
 package controllers
 
 import (
+	"errors"
 	db "jwt-auth/database"
 	"jwt-auth/models"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator"
+	"gorm.io/gorm"
 )
 
 type LoginData struct {
@@ -38,7 +40,14 @@ func Login(ctx *gin.Context) {
 
 	// Check if email exists
 	record := db.MainDB.Instance.Where("email = ?", form.Email).First(&user)
-	if record.Error != nil {
+	if errors.Is(record.Error, gorm.ErrRecordNotFound) {
+		ctx.JSON(
+			http.StatusUnauthorized,
+			gin.H{"error": "invalid credentials"},
+		)
+		ctx.Abort()
+		return
+	} else if record.Error != nil {
 		ctx.JSON(
 			http.StatusInternalServerError,
 			gin.H{"error": record.Error.Error()},
@@ -70,7 +79,7 @@ func Login(ctx *gin.Context) {
 	}
 
 	// Set cookies header
-	ctx.SetCookie("sessionId", newSession.SessionId, 360000, "/", "localhost", true, true) // TODO: change this
+	ctx.SetCookie("sessionId", newSession.SessionId, 360000, "/", "localhost", true, true)
 	ctx.Header("Location", "/")
 
 	// Save session to sessionDB and cache

@@ -16,8 +16,8 @@ func AppsHeadersMiddleware() gin.HandlerFunc {
 
 func APIHeadersMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Only `application/json` content-type is allowed
-		if strings.ToLower(c.Request.Header.Get("Content-Type")) != "application/json; charset=utf-8" {
+		// For POST only `application/json` content-type is allowed
+		if c.Request.Method == "POST" && strings.ToLower(c.Request.Header.Get("Content-Type")) != "application/json; charset=utf-8" {
 			c.JSON(
 				http.StatusUnsupportedMediaType,
 				gin.H{"error": "not acceptable content-type"},

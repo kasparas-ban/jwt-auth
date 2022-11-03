@@ -1,4 +1,6 @@
-# JWT-based auth server
+# Auth server
+
+This is a basic authentication server that handles sign-up, login, and all the associated session management that comes with it.
 
 To start the server add .env file in the format as shown below and run
 
@@ -16,6 +18,10 @@ EMAIL_PASS=example
 JWT_KEY=example
 
 PORT=3001
+
+MAINDB_PASS=password123
+
+CACHE_PASS=password123
 ```
 
 ---

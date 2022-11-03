@@ -5,6 +5,8 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v9"
@@ -102,4 +104,26 @@ func SaveSession(ctx *gin.Context, s *Session) error {
 	}
 
 	return nil
+}
+
+func RemoveUserSession(ctx *gin.Context, sessionId string) error {
+	// Remove session from sessionDB
+	result := SessionDB.Instance.Where("session_id = ?", sessionId).Delete(&Session{})
+	if result.Error != nil {
+		return result.Error
+	}
+
+	// Remove session from session cache
+	_, err := SessionCache.Client.Del(ctx, sessionId).Result()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func ExtractSessionId(cookie *http.Cookie) string {
+	sessionId := cookie.Value
+	sessionId = strings.Replace(sessionId, "%3D", "=", -1)
+	return sessionId
 }

@@ -31,6 +31,7 @@ func TestMain(m *testing.M) {
 
 	// Init main DB
 	gormConfig := &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)}
+	// gormConfig := &gorm.Config{}
 	db.MainDB.Instance = initDB("main_DB_test", gormConfig)
 	db.MainDB.Migrate(&models.User{})
 	seedMainDB()
@@ -206,7 +207,7 @@ func TestRegister_AddInvalidUser(t *testing.T) {
 // === Login ===============================================================
 // =========================================================================
 
-func TestLogin(t *testing.T) {
+func TestLogin_Successful(t *testing.T) {
 	userId := 4
 
 	// Return login page
@@ -236,9 +237,8 @@ func TestLogin(t *testing.T) {
 	assert.Equal(t, http.StatusFound, w.Code)
 	location, _ := w.Result().Location()
 	setCookieHeader := w.Result().Header.Get("Set-Cookie")
-	// assert.Equal(t, "/", setCookieHeader)
 	sessionId := strings.Split(strings.Split(setCookieHeader, ";")[0], "=")[1]
-	sessionId = strings.Replace(sessionId, "%3D", "=", -1) // Do I need this?
+	sessionId = strings.Replace(sessionId, "%3D", "=", -1)
 
 	assert.Equal(t, "/", location.Path)
 	assert.Equal(t, 360000, w.Result().Cookies()[0].MaxAge)
@@ -264,12 +264,76 @@ func TestLogin(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestLoginAPIRoute(t *testing.T) {
+func TestLogin_InvalidPassword(t *testing.T) {
+	userId := 1
+	loginForm := controllers.LoginData{
+		Email:    seedUsers[userId].Email,
+		Password: "testPassword",
+	}
+
+	reqBodyBytes := new(bytes.Buffer)
+	json.NewEncoder(reqBodyBytes).Encode(loginForm)
+	postBody := bytes.NewBuffer(reqBodyBytes.Bytes())
+
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest(http.MethodGet, "/api/", nil)
+	req, _ := http.NewRequest(http.MethodPost, "/api/login", postBody)
+	req.Header.Set("Content-Type", "application/json; charset=UTF-8")
 	router.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+}
+
+func TestLogin_NoUser(t *testing.T) {
+	loginForm := controllers.LoginData{
+		Email:    "test@gmail.com",
+		Password: "testPassword",
+	}
+
+	reqBodyBytes := new(bytes.Buffer)
+	json.NewEncoder(reqBodyBytes).Encode(loginForm)
+	postBody := bytes.NewBuffer(reqBodyBytes.Bytes())
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodPost, "/api/login", postBody)
+	req.Header.Set("Content-Type", "application/json; charset=UTF-8")
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+}
+
+// =========================================================================
+// === Logout ==============================================================
+// =========================================================================
+
+func TestLogout(t *testing.T) {
+	userSession := seedSessions[0]
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/api/logout", nil)
+	req.Header.Set("Content-Type", "application/json; charset=UTF-8")
+	req.Header.Set("Cookie", fmt.Sprintf("sessionId=%s", userSession.SessionId))
+	router.ServeHTTP(w, req)
+
+	// Check if redirected to the home page and cookie is deleted
+
+	assert.Equal(t, -1, w.Result().Cookies()[0].MaxAge)
+	assert.Equal(t, http.StatusFound, w.Code)
+
+	// Successful logout should remove user session from sessionDB
+
+	ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
+	_, err := db.ReadSessionDB(ctx, userSession.SessionId)
+	assert.Equal(t, fmt.Errorf("no session found"), err)
+
+	// Successful logout should remove user session from session cache
+
+	_, err = db.ReadSessionCache(ctx, userSession.SessionId)
+	assert.NotNil(t, err)
+
+	// Or we can check this in one go
+
+	err = db.ValidateSession(ctx, userSession.SessionId)
+	assert.NotNil(t, err)
 }
 
 // =========================================================================

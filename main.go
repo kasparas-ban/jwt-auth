@@ -104,6 +104,7 @@ func initRouter(router *gin.Engine) {
 	api := router.Group("/api")
 	{
 		api.POST("/login", m.APIHeadersMiddleware(), controllers.Login)
+		api.GET("/logout", m.APIHeadersMiddleware(), controllers.Logout)
 		api.POST("/register", m.APIHeadersMiddleware(), controllers.Register)
 		api.GET("/activate/:token", controllers.Activate)
 		api.POST("/init-reset", m.APIHeadersMiddleware(), controllers.InitiateReset)
