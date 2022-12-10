@@ -9,7 +9,8 @@ import (
 	"jwt-auth/controllers"
 	db "jwt-auth/database"
 	m "jwt-auth/middlewares"
-	"jwt-auth/models"
+
+	// "jwt-auth/models"
 	tempConf "jwt-auth/templates"
 	"os"
 
@@ -40,16 +41,16 @@ func loadTemplates() {
 func initializeDBs(dev bool) {
 	if dev {
 		db.MainDB.Connect(fmt.Sprintf("root:%s@tcp(localhost:3306)/main_DB?parseTime=true", env.MAINDB_PASS), &gorm.Config{})
-		db.MainDB.Migrate(&models.User{})
+		// db.MainDB.Migrate(&models.User{})
 		db.SessionDB.Connect(fmt.Sprintf("root:%s@tcp(localhost:3306)/session_DB?parseTime=true", env.MAINDB_PASS), &gorm.Config{})
-		db.SessionDB.Migrate(&db.Session{})
+		// db.SessionDB.Migrate(&db.Session{})
 		db.SessionCache.Connect(fmt.Sprintf("redis://default:%s@localhost:6379/0", env.CACHE_PASS))
 	} else {
 		gormConfig := &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)}
 		db.MainDB.Connect(fmt.Sprintf("root:%s@tcp(main_DB:3306)/main_DB?parseTime=true", env.MAINDB_PASS), gormConfig)
-		db.MainDB.Migrate(&models.User{})
+		// db.MainDB.Migrate(&models.User{})
 		db.SessionDB.Connect(fmt.Sprintf("root:%s@tcp(main_DB:3306)/session_DB?parseTime=true", env.MAINDB_PASS), gormConfig)
-		db.SessionDB.Migrate(&db.Session{})
+		// db.SessionDB.Migrate(&db.Session{})
 		db.SessionCache.Connect(fmt.Sprintf("redis://default:%s@sessions_cache:6379/0", env.CACHE_PASS))
 	}
 }
