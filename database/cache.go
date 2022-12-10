@@ -100,6 +100,7 @@ func SaveSession(ctx *gin.Context, s *Session) error {
 
 	// Save to cache
 	if err := SaveCacheSession(ctx, s); err != nil {
+		fmt.Println("SAVEING TO CHaCHE FaiLED")
 		return err
 	}
 

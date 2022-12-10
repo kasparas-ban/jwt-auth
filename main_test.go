@@ -31,7 +31,6 @@ func TestMain(m *testing.M) {
 
 	// Init main DB
 	gormConfig := &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)}
-	// gormConfig := &gorm.Config{}
 	db.MainDB.Instance = initDB("main_DB_test", gormConfig)
 	db.MainDB.Migrate(&models.User{})
 	seedMainDB()
@@ -334,6 +333,52 @@ func TestLogout(t *testing.T) {
 
 	err = db.ValidateSession(ctx, userSession.SessionId)
 	assert.NotNil(t, err)
+}
+
+// =========================================================================
+// === Delete Account  =====================================================
+// =========================================================================
+
+func TestDeleteAccount_Successful(t *testing.T) {
+	userId := 1
+	userSession := seedSessions[userId]
+	form := controllers.DeleteAccountForm{
+		Password: userPasswords[userId],
+	}
+
+	reqBodyBytes := new(bytes.Buffer)
+	json.NewEncoder(reqBodyBytes).Encode(form)
+	postBody := bytes.NewBuffer(reqBodyBytes.Bytes())
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/api/deleteAccount", postBody)
+	req.Header.Set("Content-Type", "application/json; charset=UTF-8")
+	req.Header.Set("Cookie", fmt.Sprintf("sessionId=%s", userSession.SessionId))
+	router.ServeHTTP(w, req)
+
+	// Check if redirected to the home page and cookie is deleted
+
+	assert.Equal(t, -1, w.Result().Cookies()[0].MaxAge)
+	assert.Equal(t, http.StatusFound, w.Code)
+
+	// Successful account deletion should remove user session from sessionDB
+
+	ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
+	_, err := db.ReadSessionDB(ctx, userSession.SessionId)
+	assert.Equal(t, fmt.Errorf("no session found"), err)
+
+	// Successful account deletion should remove user session from session cache
+
+	_, err = db.ReadSessionCache(ctx, userSession.SessionId)
+	assert.NotNil(t, err)
+
+	// Or we can check this in one go
+
+	err = db.ValidateSession(ctx, userSession.SessionId)
+	assert.NotNil(t, err)
+
+	// User account should be removed from the mainDB
+
 }
 
 // =========================================================================

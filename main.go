@@ -48,7 +48,7 @@ func initializeDBs(dev bool) {
 		gormConfig := &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)}
 		db.MainDB.Connect(fmt.Sprintf("root:%s@tcp(main_DB:3306)/main_DB?parseTime=true", env.MAINDB_PASS), gormConfig)
 		db.MainDB.Migrate(&models.User{})
-		db.SessionDB.Connect(fmt.Sprintf("root:%s@tcp(session_DB:3306)/session_DB?parseTime=true", env.MAINDB_PASS), gormConfig)
+		db.SessionDB.Connect(fmt.Sprintf("root:%s@tcp(main_DB:3306)/session_DB?parseTime=true", env.MAINDB_PASS), gormConfig)
 		db.SessionDB.Migrate(&db.Session{})
 		db.SessionCache.Connect(fmt.Sprintf("redis://default:%s@sessions_cache:6379/0", env.CACHE_PASS))
 	}
@@ -103,12 +103,17 @@ func initRouter(router *gin.Engine) {
 	// API routes
 	api := router.Group("/api")
 	{
+		// Signup / login
 		api.POST("/login", m.APIHeadersMiddleware(), controllers.Login)
 		api.GET("/logout", m.APIHeadersMiddleware(), controllers.Logout)
 		api.POST("/register", m.APIHeadersMiddleware(), controllers.Register)
 		api.GET("/activate/:token", controllers.Activate)
+
+		// Updating user info
 		api.POST("/init-reset", m.APIHeadersMiddleware(), controllers.InitiateReset)
 		api.POST("/complete-reset", m.APIHeadersMiddleware(), controllers.CompleteReset)
+		api.POST("/deleteAccount", m.APIHeadersMiddleware(), controllers.DeleteAccount)
+
 		secured := api.Group("/").Use(m.APIAuth())
 		{
 			secured.GET("/ping", controllers.Ping)
