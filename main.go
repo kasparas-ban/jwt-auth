@@ -43,7 +43,7 @@ func initializeDBs(dev bool) {
 		db.MainDB.Connect(fmt.Sprintf("root:%s@tcp(localhost:3306)/main_DB?parseTime=true", env.MAINDB_PASS), &gorm.Config{})
 		// db.MainDB.Migrate(&models.User{})
 		db.SessionDB.Connect(fmt.Sprintf("root:%s@tcp(localhost:3306)/session_DB?parseTime=true", env.MAINDB_PASS), &gorm.Config{})
-		// db.SessionDB.Migrate(&db.Session{})
+		db.SessionDB.Migrate(&db.Session{})
 		db.SessionCache.Connect(fmt.Sprintf("redis://default:%s@localhost:6379/0", env.CACHE_PASS))
 	} else {
 		gormConfig := &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)}
@@ -62,6 +62,8 @@ func main() {
 	environment := flag.Bool("dev", false, "environment description")
 	flag.Parse()
 	initializeDBs(*environment)
+
+	// seed_data.PopulateMainDB()
 
 	// Initialize router
 	if !*environment {
@@ -103,21 +105,20 @@ func initRouter(router *gin.Engine) {
 
 	// API routes
 	api := router.Group("/api")
+	secured := api.Group("/").Use(m.APIHeadersMiddleware())
 	{
 		// Signup / login
-		api.POST("/login", m.APIHeadersMiddleware(), controllers.Login)
-		api.GET("/logout", m.APIHeadersMiddleware(), controllers.Logout)
-		api.POST("/register", m.APIHeadersMiddleware(), controllers.Register)
+		secured.POST("/login", controllers.Login)
+		secured.GET("/logout", controllers.Logout)
+		secured.POST("/register", controllers.Register)
 		api.GET("/activate/:token", controllers.Activate)
 
 		// Updating user info
-		api.POST("/init-reset", m.APIHeadersMiddleware(), controllers.InitiateReset)
-		api.POST("/complete-reset", m.APIHeadersMiddleware(), controllers.CompleteReset)
-		api.POST("/deleteAccount", m.APIHeadersMiddleware(), controllers.DeleteAccount)
+		secured.POST("/init-reset", controllers.InitiateReset)
+		secured.POST("/complete-reset", controllers.CompleteReset)
+		secured.POST("/deleteAccount", controllers.DeleteAccount)
 
-		secured := api.Group("/").Use(m.APIAuth())
-		{
-			secured.GET("/ping", controllers.Ping)
-		}
+		// Getting user info
+		secured.GET("/allFriends", controllers.AllFriends)
 	}
 }

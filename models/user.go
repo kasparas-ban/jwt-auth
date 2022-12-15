@@ -3,16 +3,18 @@ package models
 import (
 	"fmt"
 	"regexp"
+	"time"
 
 	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 )
 
 type User struct {
-	gorm.Model
-	Username string `json:"username"`
-	Email    string `json:"email" gorm:"unique"`
-	Password string `json:"password"`
+	ID        uint64 `gorm:"primaryKey"`
+	Username  string `json:"username" gorm:"unique"`
+	Email     string `json:"email" gorm:"unique"`
+	Password  string `json:"password"`
+	CreatedAt time.Time
+	DeletedAt time.Time
 }
 
 func (user *User) CheckPassword(providedPassword string) error {

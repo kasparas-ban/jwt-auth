@@ -255,7 +255,7 @@ func TestLogin_Successful(t *testing.T) {
 	// Successful login should create a new session in session cache
 
 	cacheUserId, _ := db.ReadSessionCache(ctx, sessionId)
-	assert.Equal(t, fmt.Sprint(userId+1), cacheUserId)
+	assert.Equal(t, fmt.Sprint(userId+1), cacheUserId.UserId)
 
 	// Or we can check this in one go
 

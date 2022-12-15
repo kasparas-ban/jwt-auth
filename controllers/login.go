@@ -43,7 +43,8 @@ func Login(ctx *gin.Context) {
 	if errors.Is(record.Error, gorm.ErrRecordNotFound) {
 		ctx.JSON(
 			http.StatusUnauthorized,
-			gin.H{"error": "invalid credentials"},
+			gin.H{"error": record.Error},
+			// gin.H{"error": "invalid credentials"},
 		)
 		ctx.Abort()
 		return
@@ -61,7 +62,8 @@ func Login(ctx *gin.Context) {
 	if credentialError != nil {
 		ctx.JSON(
 			http.StatusUnauthorized,
-			gin.H{"error": "invalid credentials"},
+			gin.H{"error": "wrong pass"},
+			// gin.H{"error": "invalid credentials"},
 		)
 		ctx.Abort()
 		return

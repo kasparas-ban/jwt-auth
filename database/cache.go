@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -15,7 +16,7 @@ import (
 
 type Session struct {
 	SessionId string `json:"sessionId" gorm:"primarykey"`
-	UserId    uint   `json:"userId"`
+	UserId    uint64 `json:"userId"`
 }
 
 type cache struct {
@@ -40,12 +41,20 @@ func SaveCacheSession(ctx *gin.Context, s *Session) error {
 	return nil
 }
 
-func ReadSessionCache(ctx *gin.Context, sessionId string) (string, error) {
+func ReadSessionCache(ctx *gin.Context, sessionId string) (Session, error) {
+	var session Session
 	val, err := SessionCache.Client.Get(ctx, sessionId).Result()
 	if err != nil {
-		return "", err
+		return session, err
 	}
-	return val, nil
+
+	id, err := strconv.ParseUint(val, 10, 64)
+	if err != nil {
+		return session, err
+	}
+	session = Session{sessionId, id}
+
+	return session, nil
 }
 
 func ReadSessionDB(ctx *gin.Context, sessionId string) (*Session, error) {
@@ -57,7 +66,7 @@ func ReadSessionDB(ctx *gin.Context, sessionId string) (*Session, error) {
 	return session, nil
 }
 
-func GenerateSession(userId uint) (Session, error) {
+func GenerateSession(userId uint64) (Session, error) {
 	session := Session{}
 	b := make([]byte, 20)
 	_, err := rand.Read(b)
@@ -71,7 +80,8 @@ func GenerateSession(userId uint) (Session, error) {
 
 func ValidateSession(ctx *gin.Context, sessionId string) error {
 	// Check cache for sessionId
-	if _, err := ReadSessionCache(ctx, sessionId); err == nil {
+	if session, err := ReadSessionCache(ctx, sessionId); err == nil {
+		ctx.Set("userID", session.UserId)
 		return nil
 	}
 
@@ -80,6 +90,7 @@ func ValidateSession(ctx *gin.Context, sessionId string) error {
 	if err != nil {
 		return fmt.Errorf("no session found")
 	}
+	ctx.Set("userID", session.UserId)
 
 	// Session was found in DB, save it to cache
 	if err := SaveCacheSession(ctx, session); err != nil {
