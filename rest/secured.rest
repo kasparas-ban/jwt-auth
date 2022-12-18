@@ -9,6 +9,6 @@ content-type: application/json
 // Access a Secured API Endpoint
 GET http://{{host}}/api/allFriends HTTP/1.1
 content-type: application/json
-authorization: Cp4deTbgJlGEvGV0ZKPTp_58Vw
+authorization: Cp4deTbgJlGEvGV0ZKPTp_58Vwg=
 
 ###

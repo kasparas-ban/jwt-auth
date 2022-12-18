@@ -11,13 +11,11 @@ type Relation struct {
 	CreateTime  time.Time
 }
 
-func GetAllFriendships(userID uint64) (*[]models.User, error) {
+func GetAllFriendships(userID uint64, limit int, offset int) (*[]models.User, error) {
 	var allFriends *[]models.User
 
 	subQuery := MainDB.Instance.Select("addressee_id").Where("requester_id = ?", userID).Table("friendships")
-	// MainDB.Instance.Select("username email"), subQuery).Find(&allFriends)
-
-	err := MainDB.Instance.Select("username email", subQuery).Find(&allFriends).Error
+	err := MainDB.Instance.Select("username", "email").Where("id IN (?)", subQuery).Limit(limit).Offset(offset).Find(&allFriends).Error
 	if err != nil {
 		return nil, err
 	}
