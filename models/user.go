@@ -9,12 +9,18 @@ import (
 )
 
 type User struct {
-	ID        uint64 `gorm:"primaryKey"`
-	Username  string `json:"username" gorm:"unique"`
-	Email     string `json:"email" gorm:"unique"`
-	Password  string `json:"password"`
-	CreatedAt time.Time
-	DeletedAt time.Time
+	ID         uint64 `gorm:"primaryKey"`
+	Username   string `json:"username" gorm:"unique"`
+	Email      string `json:"email" gorm:"unique"`
+	Password   string `json:"password"`
+	FullName   string `json:"full_name"`
+	ProfilePic string `json:"profile_pic"`
+	Location   string `json:"location"`
+	Gender     string `json:"gender"`
+	About      string `json:"about"`
+	Birthday   string `json:"birthday"`
+	CreatedAt  time.Time
+	DeletedAt  time.Time
 }
 
 func (user *User) CheckPassword(providedPassword string) error {

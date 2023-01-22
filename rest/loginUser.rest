@@ -7,13 +7,18 @@ POST http://{{host}}/api/login HTTP/3.0
 content-type: application/json; charset=utf-8
     
 {
-    "email": "Shaina_Kovacek99@gmail.com",
-    "password": "gibimowuyuquropexepufi"
+    "email": "Dwight.Mertz@hotmail.com",
+    "password": "lafoqiyayepecemo"
 }
 
 ###
 
-// Access protected resources
 GET http://{{host}}/api/allFriends HTTP/3.0
 content-type: application/json; charset=utf-8
-cookie: sessionId=61vuhElaY4vbDxFvrfAOb4kYW6U%3D
+cookie: sessionId=jGtKawWDI-UpL8jNAth1aTmYqvQ%3D
+
+###
+
+GET http://{{host}}/api/profileInfo HTTP/3.0
+content-type: application/json; charset=utf-8
+cookie: sessionId=jGtKawWDI-UpL8jNAth1aTmYqvQ%3D

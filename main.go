@@ -50,7 +50,7 @@ func initializeDBs(dev bool) {
 		db.MainDB.Connect(fmt.Sprintf("root:%s@tcp(main_DB:3306)/main_DB?parseTime=true", env.MAINDB_PASS), gormConfig)
 		// db.MainDB.Migrate(&models.User{})
 		db.SessionDB.Connect(fmt.Sprintf("root:%s@tcp(main_DB:3306)/session_DB?parseTime=true", env.MAINDB_PASS), gormConfig)
-		// db.SessionDB.Migrate(&db.Session{})
+		db.SessionDB.Migrate(&db.Session{})
 		db.SessionCache.Connect(fmt.Sprintf("redis://default:%s@sessions_cache:6379/0", env.CACHE_PASS))
 	}
 }
@@ -77,7 +77,7 @@ func main() {
 func initRouter(router *gin.Engine) {
 	// Do auth
 	router.Use(m.GlobeAuth())
-	// router.Use(m.CORSMiddleware()) // TODO: remove in prod
+	router.Use(m.CORSMiddleware()) // TODO: remove in prod
 
 	// React apps
 	router.NoRoute(func(c *gin.Context) {
@@ -119,6 +119,7 @@ func initRouter(router *gin.Engine) {
 		secured.POST("/deleteAccount", controllers.DeleteAccount)
 
 		// Getting user info
+		secured.GET("/profileInfo", controllers.ProfileInfo)
 		secured.GET("/allFriends", controllers.AllFriends)
 	}
 }
